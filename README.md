@@ -17,7 +17,9 @@ pip3 install streamlit \
                 plotly \
                 scikit-learn \
                 matplotlib \
-                seaborn 
+                seaborn \
+                ucimlrepo \
+                statsmodels
 ```
 
 ## Execução do dashboard
