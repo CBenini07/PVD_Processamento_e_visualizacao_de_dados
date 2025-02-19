@@ -115,7 +115,7 @@ elif menu == "Comparação de Países":
 
     # Validation check
     if not group_a or not group_b:
-        st.warning("Selecione pelo menos um país em cada grupo.")
+        st.warning("⚠️ Selecione pelo menos um país em cada grupo. ⚠️")
 
     # ==================== GRAFICO 1 ====================
     df_income_groups = pd.concat([
@@ -205,7 +205,7 @@ elif menu == "Comparação de Países":
 
     fig_education.update_yaxes(title_text="Percentual (%)", range=[0, 100])
 
-    # Display charts in the placeholders
+    # ==================== PLOTS E DESCRICOES ====================
     col1_placeholder_pais, col2_placeholder_pais = st.columns(2)
 
     with col1_placeholder_pais:
@@ -221,7 +221,7 @@ elif menu == "Comparação de Países":
         if len(subset_b) > 1:
             porcentagem_b_mais50k = subset_b.iloc[1]
 
-
+        
         income_desc = f"""
         **Descrição do Gráfico de Renda:**
         Este gráfico compara a distribuição de renda entre as populações originárias de diferentes grupos de países e que estão vivendo nos Estados Unidos da América.
@@ -235,20 +235,23 @@ elif menu == "Comparação de Países":
     with col2_placeholder_pais:
         chart_placeholder_2.plotly_chart(fig_education)
 
-        education_desc = f"""
-        **Descrição do Gráfico de Educação:**
-        Este gráfico compara os níveis educacionais entre os dois grupos de países selecioandos.
-        No primeiro grupo, chamado de **Grupo A**, temos os dados de **{population_a}** pessoas originárias de: {', '.join(group_a)}. 
-        E para o segundo grupo, entitulado de **Grupo B**, apresenta-se os dados de **{population_b}** pessoas nascidas no(s) seguinte(s) país(es): {', '.join(group_b)}.
-        Através das proporções apresentadas nos gráficos, 
-        percebe-se que no Grupo A, **{(df_education_groups['percent'][0]+df_education_groups['percent'][1]):.1f}%** da população nem sequer possui o Ensino Médio Completo,
-        em comparação, no Grupo B, **{(df_education_groups['percent'][9]+df_education_groups['percent'][10]):.1f}%** da população está nessa mesma categoria.
-        Observa-se também, com relação ao número de pessoas que apenas possuem o Ensino Médio, que **{df_education_groups['percent'][2]:.1f}%** das pessoas do Grupo A e **{df_education_groups['percent'][11]:.1f}%** das pessoas no Grupo B se encontram nessa categoria.
-        Já no Ensino Técnico ou Superior Incompleto, encontram-se **{(df_education_groups['percent'][3]+df_education_groups['percent'][4]+df_education_groups['percent'][5]):.1f}%** das pessoas do Grupo A e **{(df_education_groups['percent'][12]+df_education_groups['percent'][13]+df_education_groups['percent'][14]):.1f}%** das pessoas no Grupo B.
-        Agora com o Ensino Superior Completo, **{df_education_groups['percent'][6]:.1f}%** das pessoas do Grupo A possuem esse diploma enquanto essa proporção é de **{df_education_groups['percent'][15]:.1f}%** no Grupo B.
-        E com relação a Pós-Graduações, o Grupo A é composto em **{df_education_groups['percent'][7]:.1f}% de mestres e {df_education_groups['percent'][8]:.1f}%** de doutores.
-        Enquanto no Grupo B esse valor é de **{df_education_groups['percent'][16]:.1f}%** e **{df_education_groups['percent'][17]:.1f}%** respectivamente.
-        """
+        if not group_a or not group_b:
+            education_desc = f""" Selecione os paises nos dois Grupos para obter a descrição completa """
+        else:
+            education_desc = f"""
+            **Descrição do Gráfico de Educação:**
+            Este gráfico compara os níveis educacionais entre os dois grupos de países selecioandos.
+            No primeiro grupo, chamado de **Grupo A**, temos os dados de **{population_a}** pessoas originárias de: {', '.join(group_a)}. 
+            E para o segundo grupo, entitulado de **Grupo B**, apresenta-se os dados de **{population_b}** pessoas nascidas no(s) seguinte(s) país(es): {', '.join(group_b)}.
+            Através das proporções apresentadas nos gráficos, 
+            percebe-se que no Grupo A, **{(df_education_groups['percent'][0]+df_education_groups['percent'][1]):.1f}%** da população nem sequer possui o Ensino Médio Completo,
+            em comparação, no Grupo B, **{(df_education_groups['percent'][9]+df_education_groups['percent'][10]):.1f}%** da população está nessa mesma categoria.
+            Observa-se também, com relação ao número de pessoas que apenas possuem o Ensino Médio, que **{df_education_groups['percent'][2]:.1f}%** das pessoas do Grupo A e **{df_education_groups['percent'][11]:.1f}%** das pessoas no Grupo B se encontram nessa categoria.
+            Já no Ensino Técnico ou Superior Incompleto, encontram-se **{(df_education_groups['percent'][3]+df_education_groups['percent'][4]+df_education_groups['percent'][5]):.1f}%** das pessoas do Grupo A e **{(df_education_groups['percent'][12]+df_education_groups['percent'][13]+df_education_groups['percent'][14]):.1f}%** das pessoas no Grupo B.
+            Agora com o Ensino Superior Completo, **{df_education_groups['percent'][6]:.1f}%** das pessoas do Grupo A possuem esse diploma enquanto essa proporção é de **{df_education_groups['percent'][15]:.1f}%** no Grupo B.
+            E com relação a Pós-Graduações, o Grupo A é composto em **{df_education_groups['percent'][7]:.1f}% de mestres e {df_education_groups['percent'][8]:.1f}%** de doutores.
+            Enquanto no Grupo B esse valor é de **{df_education_groups['percent'][16]:.1f}%** e **{df_education_groups['percent'][17]:.1f}%** respectivamente.
+            """
         
         desc_placeholder_2.markdown(education_desc)
 
