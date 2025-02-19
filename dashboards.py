@@ -12,12 +12,13 @@ df = pd.read_csv("data_processada_final.csv", sep=",", decimal=",", header=0)
 # Criando a barra lateral
 menu = st.sidebar.selectbox("Escolha uma opção", ["Dataset", "Heatmap", "Comparação de Países", "Comparação de Investimentos"])
 
+# ################## PÁGINA DO DATASET ##################
 if menu == "Dataset":
     st.write("## Dataset Processado")
     st.dataframe(df)
 
 
-
+# ################## PÁGINA DO HEATMAP ##################
 elif menu == "Heatmap":
     st.write("## Heatmap dos Atributos")
     default_features = ['income', 'sex_Male', 'education-num', 'age', 'investment_status', 'race_Black', 'race_White']
@@ -32,43 +33,49 @@ elif menu == "Heatmap":
 
 
 
+# ################## PÁGINA DA COMPARAÇÃO DOS IMIGRANTES ##################
 elif menu == "Comparação de Países":
     st.write("## Comparação de Países")
 
-    # ==================== SELECAO DOS PAISES ====================
-    paises_sem_usa = ["Haiti", "Cuba", "Jamaica", "Mexico", "Dominican-Republic", "Peru", "Puerto-Rico", "Honduras", "Ecuador", "El-Salvador", "Guatemala", "Trinadad&Tobago", "Nicaragua", "China", "India", "Philippines", "Cambodia", "Thailand", "Laos", "Taiwan", "Japan", "Vietnam", "Hong", "England", "Germany", "Poland", "Portugal", "France", "Italy", "Scotland", "Greece", "Ireland", "Hungary", "Holand-Netherlands", "Yugoslavia", "Canada", "Iran", "Columbia", "South"]
+    # Initialize default values
+    countries = df["native-country-name"].unique()
+    default_group_a = ["United-States"]
+    default_group_b = []
+    
+    # Create placeholders for the charts
+    chart_placeholder_1 = st.empty()
+    desc_placeholder_1 = st.empty()
+    chart_placeholder_2 = st.empty()
+    desc_placeholder_2 = st.empty()
+    
+    # Population info placeholder
+    # population_info = st.empty()
 
+    # ==================== SELECAO DOS PAISES ====================
+    st.write("### Configuração da Análise")
+    
+    paises_sem_usa = ["Haiti", "Cuba", "Jamaica", "Mexico", "Dominican-Republic", "Peru", "Puerto-Rico", "Honduras", "Ecuador", "El-Salvador", "Guatemala", "Trinadad&Tobago", "Nicaragua", "China", "India", "Philippines", "Cambodia", "Thailand", "Laos", "Taiwan", "Japan", "Vietnam", "Hong", "England", "Germany", "Poland", "Portugal", "France", "Italy", "Scotland", "Greece", "Ireland", "Hungary", "Holand-Netherlands", "Yugoslavia", "Canada", "Iran", "Columbia", "South"]
     paises_latinos = ["Haiti", "Cuba", "Jamaica", "Mexico", "Dominican-Republic", "Peru", "Puerto-Rico", "Honduras", "Ecuador", "El-Salvador", "Guatemala", "Trinadad&Tobago", "Nicaragua"]
     paises_asiaticos = ["China", "India", "Philippines", "Cambodia", "Thailand", "Laos", "Taiwan", "Japan", "Vietnam", "Hong"]
     paises_europeus = ["England", "Germany", "Poland", "Portugal", "France", "Italy", "Scotland", "Greece", "Ireland", "Hungary", "Holand-Netherlands", "Yugoslavia"]
-
-    paises_subdesenvolvidos = ["China", "India", "Iran"]
-    paises_desenvolvidos = ["Canada", "United-States", "England", "Germany", "Poland", "Portugal", "France", "Italy", "Japan", "Scotland", "Greece", "Ireland", "Hungary", "Holand-Netherlands"]
-
-    countries = df["native-country-name"].unique()
     
-    coluna1_paises, coluna2_paises = st.columns(2)  # Criando duas colunas para organizar os multiselects
+    coluna1_paises, coluna2_paises = st.columns(2)
     
     with coluna1_paises:
-        group_a = st.multiselect("Selecione os países do Grupo A", countries, default=["United-States"])
+        group_a = st.multiselect("Selecione os países do Grupo A", countries, default=default_group_a)
 
-    # Inicializa o conjunto de países do Grupo B
+    # Initialize selected countries set
     selected_countries = set()
 
     st.write("### Grupos de Seleção")
     st.write("#### Todos os imigrantes")
-    select_all_sem_usa = st.checkbox("Selecionar todos os países menos os EUA para o Grupo B", value=False)
+    select_all_sem_usa = st.checkbox("Selecionar todos os países menos os EUA para o Grupo B", value=True)
 
     st.write("#### Regiões")
     select_all_latinos = st.checkbox("Selecionar todos os Países **Latinos** para o Grupo B", value=False)
     select_all_asiaticos = st.checkbox("Selecionar todos os Países **Asiáticos** para o Grupo B", value=False)
     select_all_europeus = st.checkbox("Selecionar todos os Países **Europeus** para o Grupo B", value=False)
 
-    # st.write("#### Desenvolvimento Econômico")
-    # select_all_subdesenvolvidos = st.checkbox("Selecionar todos os países subdesenvolvidos para o Grupo B", value=False)
-    # select_all_desenvolvidos = st.checkbox("Selecionar todos os países desenvolvidos para o Grupo B", value=False)
-
-    # Atualiza os países selecionados conforme os checkboxes são marcados
     if select_all_sem_usa:
         selected_countries.update(paises_sem_usa)
     if select_all_latinos:
@@ -77,28 +84,19 @@ elif menu == "Comparação de Países":
         selected_countries.update(paises_asiaticos)
     if select_all_europeus:
         selected_countries.update(paises_europeus)
-    # if select_all_subdesenvolvidos:
-    #     selected_countries.update(paises_subdesenvolvidos)
-    # if select_all_desenvolvidos:
-    #     selected_countries.update(paises_desenvolvidos)
 
-    # Agora o multiselect do Grupo B é renderizado com as seleções atualizadas
     with coluna2_paises:
         group_b = st.multiselect("Selecione os países do Grupo B", countries, default=list(selected_countries))
 
-    # Validação para garantir que ambos os grupos tenham pelo menos um país selecionado
-    if not group_a or not group_b:
-        st.warning("Selecione pelo menos um país em cada grupo.")
-
     workclasses = [
-        "Qualquer área de trabalho",  # Opção para não filtrar
+        "Qualquer área de trabalho",
         "workclass_Local-gov", "workclass_Private", "workclass_Self-emp-inc",
         "workclass_Self-emp-not-inc", "workclass_State-gov", "workclass_Without-pay"
     ]
 
     selected_workclass = st.selectbox("Selecione a classe de trabalho:", workclasses)
 
-
+    # Data processing
     if selected_workclass == "Qualquer área de trabalho":
         df_group_a = df[df['native-country-name'].isin(group_a)].copy()
         df_group_b = df[df['native-country-name'].isin(group_b)].copy()
@@ -106,11 +104,20 @@ elif menu == "Comparação de Países":
         df_group_a = df[(df['native-country-name'].isin(group_a)) & (df[selected_workclass] == 1)].copy()
         df_group_b = df[(df['native-country-name'].isin(group_b)) & (df[selected_workclass] == 1)].copy()
 
+    # Update population info
+    population_a = len(df_group_a)
+    population_b = len(df_group_b)
+    
+    # population_info.markdown(f"""
+    # População total do **Grupo A**: {population_a}  
+    # População total do **Grupo B**: {population_b}
+    # """)
 
-    coluna_paises_grafico_1, coluna_paises_grafico_2 = st.columns(2)
+    # Validation check
+    if not group_a or not group_b:
+        st.warning("Selecione pelo menos um país em cada grupo.")
 
-        # ==================== GRAFICO 1 ====================
-
+    # ==================== GRAFICO 1 ====================
     df_income_groups = pd.concat([
         pd.DataFrame({'is_from_group_a': "Paises do Grupo A", 'income': df_group_a['income'], 'total': 1}),
         pd.DataFrame({'is_from_group_a': "Paises do Grupo B", 'income': df_group_b['income'], 'total': 1})
@@ -119,25 +126,20 @@ elif menu == "Comparação de Países":
     df_income_groups = df_income_groups.groupby(['is_from_group_a', 'income'], as_index=False).sum()
     df_income_groups = df_income_groups.sort_values("income")
 
-    # Atualizar os rótulos para refletir essa mudança
     income_labels = {
         0: "Renda Anual Menor que $50.000",
         1: "Renda Anual Maior que $50.000"
     }
     df_income_groups["income"] = df_income_groups["income"].map(income_labels)
 
-    # Definição de padrões para melhor diferenciação visual
     pattern_shapes = {
         "Renda Anual Menor que $50.000": ".",
         "Renda Anual Maior que $50.000": "x"
     }
 
-    # Calcular o total por grupo para normalizar os valores
     df_income_groups['group_total_income'] = df_income_groups.groupby('is_from_group_a')['total'].transform('sum')
-    # Calcular a porcentagem de cada categoria
     df_income_groups['percent'] = df_income_groups['total'] / df_income_groups['group_total_income'] * 100
 
-    # Criar o gráfico usando a coluna 'percent'
     fig_income = px.bar(
         df_income_groups, 
         x="is_from_group_a", 
@@ -148,18 +150,14 @@ elif menu == "Comparação de Países":
         pattern_shape="income",  
         pattern_shape_map=pattern_shapes,
         color_discrete_map={
-            "Renda Anual Menor que $50.000": "red",   # Cor vermelha para 0
-            "Renda Anual Maior que $50.000": "green"  # Cor verde para 1
+            "Renda Anual Menor que $50.000": "red",
+            "Renda Anual Maior que $50.000": "green"
         }
     )
 
     fig_income.update_yaxes(title_text="Percentual (%)", range=[0, 100])
 
-    coluna_paises_grafico_1.plotly_chart(fig_income)
-
-
     # ==================== GRAFICO 2 ====================
-
     df_education_groups = pd.concat([
         pd.DataFrame({'is_from_group_a': "Paises do Grupo A", 'education-num': df_group_a['education-num'], 'total': 1}),
         pd.DataFrame({'is_from_group_a': "Paises do Grupo B", 'education-num': df_group_b['education-num'], 'total': 1})
@@ -168,41 +166,32 @@ elif menu == "Comparação de Países":
     df_education_groups = df_education_groups.groupby(['is_from_group_a', 'education-num'], as_index=False).sum()
     df_education_groups = df_education_groups.sort_values("education-num")
 
-    # Mapeando os valores de 'education-num' para os rótulos desejados
     df_education_groups['education-num'] = df_education_groups['education-num'].replace(0, 0.125)
     df_education_groups['education-num'] = df_education_groups['education-num'].replace(0.375, 0.625)
     df_education_groups['education-num'] = df_education_groups['education-num'].replace(0.5, 0.625)
 
-    # Atualizar os rótulos para refletir essa mudança
     education_labels = {
-        0.125: "Médio Não Iniciado/Incompleto",  # Agrupando 0 e 0.125
+        0.125: "Médio Não Iniciado/Incompleto",
         0.25: "Médio Completo",
-        0.625: "Superior Incompleto/Técnico", # Agrupando 0.375, 0.5 e 0.625
+        0.625: "Superior Incompleto/Técnico",
         0.75: "Bacharel",
         0.875: "Mestrado",
         1: "Doutorado"
     }
     df_education_groups["education-num"] = df_education_groups["education-num"].map(education_labels)
 
-    # Definição de padrões para melhor diferenciação visual
     pattern_shapes = {
         "Médio Não Iniciado/Incompleto": ".",
         "Médio Completo": "x",
         "Superior Incompleto/Técnico": "+",
-        # "Técnico Vocacional": "/",
-        # "Técnico Administrativo": "\\",
         "Bacharel": "\\",
         "Mestrado": "|",
         "Doutorado": "/"
     }
 
-    # Criando gráfico otimizado com padrões para cada nível de educação
-    # Calcular o total por grupo para normalizar os valores
     df_education_groups['group_total_education'] = df_education_groups.groupby('is_from_group_a')['total'].transform('sum')
-    # Calcular a porcentagem de cada categoria
     df_education_groups['percent'] = df_education_groups['total'] / df_education_groups['group_total_education'] * 100
 
-    # Criar o gráfico usando a coluna 'percent'
     fig_education = px.bar(
         df_education_groups, 
         x="is_from_group_a", 
@@ -214,20 +203,58 @@ elif menu == "Comparação de Países":
         pattern_shape_map=pattern_shapes
     )
 
-    # Opcional: fixar o eixo y de 0 a 100%
     fig_education.update_yaxes(title_text="Percentual (%)", range=[0, 100])
 
-    coluna_paises_grafico_2.plotly_chart(fig_education)
+    # Display charts in the placeholders
+    col1_placeholder_pais, col2_placeholder_pais = st.columns(2)
 
-    # ==================== Quantidade de cada População ====================
-    population_a = len(df_group_a)
-    population_b = len(df_group_b)
+    with col1_placeholder_pais:
+        chart_placeholder_1.plotly_chart(fig_income)
 
-    st.write(f"População total do **Grupo A**: {population_a}")
-    st.write(f"População total do **Grupo B**: {population_b}")
+        subset_a = df_income_groups[df_income_groups['is_from_group_a'] == 'Paises do Grupo A']['percent']
+        porcentagem_a_mais50k = 0
+        if len(subset_a) > 1:
+            porcentagem_a_mais50k = subset_a.iloc[1]
+        
+        subset_b = df_income_groups[df_income_groups['is_from_group_a'] == 'Paises do Grupo B']['percent']
+        porcentagem_b_mais50k = 0
+        if len(subset_b) > 1:
+            porcentagem_b_mais50k = subset_b.iloc[1]
+
+
+        income_desc = f"""
+        **Descrição do Gráfico de Renda:**
+        Este gráfico compara a distribuição de renda entre as populações originárias de diferentes grupos de países e que estão vivendo nos Estados Unidos da América.
+        Para o primeiro grupo, entitulado de **Grupo A** e composto por: {', '.join(group_a)}; Temos as informações de **{population_a}** pessoas, das quais 
+        **{porcentagem_a_mais50k:.1f}%** da população ganha mais de \$50.000 por ano.
+        Enquanto isso, no **Grupo B**, formado por: {', '.join(group_b)}; Observa-se que das **{population_b}** pessoas desse grupo, apenas 
+        **{porcentagem_b_mais50k:.1f}%** delas ganham mais de \$50.000 por ano.
+        """
+        desc_placeholder_1.markdown(income_desc)
+
+    with col2_placeholder_pais:
+        chart_placeholder_2.plotly_chart(fig_education)
+
+        education_desc = f"""
+        **Descrição do Gráfico de Educação:**
+        Este gráfico compara os níveis educacionais entre os dois grupos de países selecioandos.
+        No primeiro grupo, chamado de **Grupo A**, temos os dados de **{population_a}** pessoas originárias de: {', '.join(group_a)}. 
+        E para o segundo grupo, entitulado de **Grupo B**, apresenta-se os dados de **{population_b}** pessoas nascidas no(s) seguinte(s) país(es): {', '.join(group_b)}.
+        Através das proporções apresentadas nos gráficos, 
+        percebe-se que no Grupo A, **{(df_education_groups['percent'][0]+df_education_groups['percent'][1]):.1f}%** da população nem sequer possui o Ensino Médio Completo,
+        em comparação, no Grupo B, **{(df_education_groups['percent'][9]+df_education_groups['percent'][10]):.1f}%** da população está nessa mesma categoria.
+        Observa-se também, com relação ao número de pessoas que apenas possuem o Ensino Médio, que **{df_education_groups['percent'][2]:.1f}%** das pessoas do Grupo A e **{df_education_groups['percent'][11]:.1f}%** das pessoas no Grupo B se encontram nessa categoria.
+        Já no Ensino Técnico ou Superior Incompleto, encontram-se **{(df_education_groups['percent'][3]+df_education_groups['percent'][4]+df_education_groups['percent'][5]):.1f}%** das pessoas do Grupo A e **{(df_education_groups['percent'][12]+df_education_groups['percent'][13]+df_education_groups['percent'][14]):.1f}%** das pessoas no Grupo B.
+        Agora com o Ensino Superior Completo, **{df_education_groups['percent'][6]:.1f}%** das pessoas do Grupo A possuem esse diploma enquanto essa proporção é de **{df_education_groups['percent'][15]:.1f}%** no Grupo B.
+        E com relação a Pós-Graduações, o Grupo A é composto em **{df_education_groups['percent'][7]:.1f}% de mestres e {df_education_groups['percent'][8]:.1f}%** de doutores.
+        Enquanto no Grupo B esse valor é de **{df_education_groups['percent'][16]:.1f}%** e **{df_education_groups['percent'][17]:.1f}%** respectivamente.
+        """
+        
+        desc_placeholder_2.markdown(education_desc)
 
 
 
+# ################## PÁGINA DA COMPARAÇÃO DE INVESTIMENTOS ##################
 if menu == "Comparação de Investimentos":
     st.write("## Comparação de Investimentos")
 
