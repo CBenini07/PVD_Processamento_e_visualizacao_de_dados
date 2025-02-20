@@ -35,6 +35,19 @@ elif menu == "Heatmap":
     else:
         st.warning("Selecione pelo menos um atributo para exibir o Heatmap.")
 
+    desc_placeholder_heatmap = st.empty()
+
+    heatmap_desc = f"""
+        **Descrição do Heatmap:**
+        O Gráfico de correlação Heatmap mostrado acima apresenta as correlações entre as seguintes variáveis: {', '.join(selected_features)}.
+        As correlações presentes vão de -1 a 1, em que quando a correlação entre 2 atributos é mais perto de 1, indica-se uma correlação positiva,
+        enquanto uma correlação mais perto de -1, obtemos uma correlação negativa entre essas 2 variáveis.
+        Como destque nesse gráfico, percebe-se uma correlação de 0.22 entre os atributos “Income” e “sex_male”, e de 0.35 entre “Income” e “education”,
+        que representando relações fraca e moderada respectivamente, assim ressaltando a hipotese de haver uma correlação significativa entre essas variáveis. 
+
+        """
+    desc_placeholder_heatmap.markdown(heatmap_desc)
+
 
 
 # ################## PÁGINA DA COMPARAÇÃO DOS IMIGRANTES ##################
