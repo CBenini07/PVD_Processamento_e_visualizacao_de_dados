@@ -24,10 +24,41 @@ if menu == "Dataset":
 
 # ################## PÁGINA DO HEATMAP ##################
 elif menu == "Heatmap":
-    st.write("## Heatmap dos Atributos")
+    st.write("## Heatmap dos Atributos - Hipótese 1 - A renda dos indivíduos está diretamente relacionada a sua educação e seu gênero")
+
+    # Criando a tabela em Markdown
+    markdown_table = """
+    | antecedents | consequents | support  | confidence | lift     |
+    |-------------|-------------|----------|------------|----------|
+    | (income)    | (sex_Male)  | 0.213311 | 0.842445   | 1.260901 |
+    """
+
+
+
+    # Exibindo a tabela no Streamlit
+    st.title('Tabela de Regras de Associação')
+    st.markdown(markdown_table)
+
+    # Descrição abaixo da tabela
+    apriori_desc = f"""
+        **Descrição da Tabela:**
+        É apresentado acima uma tabela de regras de associação Apriori comparando as variáveis income, 
+        que é uma variável booleana indicando se uma uma pessoa recebe um valor acima de \$50.000 anuais como antecedente,
+        e a variável sex_Male, que indica se a pessoa é do gênero Masculino ou Feminino.
+        Como principais resultados coletados nessa tabela, visualiza-se o suporte, que nos mostra que a combinação entre income e sex_Male
+        aparece em 21% do dataset, 
+        e também temos que o confidence é de 0.84, ou seja, que quando uma pessoa tem o
+        income maior dos \$50.000 anuais, a chance dessa pessoa ser homem é de 84%.
+    """
+    st.markdown(apriori_desc)
+
+
+    # HEATMAP
+
     default_features = ['income', 'sex_Male', 'education-num', 'age', 'investment_status', 'race_Black', 'race_White']
     selected_features = st.multiselect("Selecione os atributos para o Heatmap", df.columns.tolist(), default=default_features)
     
+    st.title('Matriz de Correlação Heatmap')
     if selected_features:
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.heatmap(df[selected_features].corr(), annot=True, cmap="coolwarm", ax=ax)
@@ -52,7 +83,7 @@ elif menu == "Heatmap":
 
 # ################## PÁGINA DA COMPARAÇÃO DOS IMIGRANTES ##################
 elif menu == "Comparação de Países":
-    st.write("## Comparação de Países")
+    st.write("## Comparação de Países - Hipótese 2 - Imigrantes recebem menos que norte-americanos")
 
     # Initialize default values
     countries = df["native-country-name"].unique()
@@ -277,7 +308,7 @@ elif menu == "Comparação de Países":
 
 # ################## PÁGINA DA COMPARAÇÃO DE GENERO ##################
 if menu == "Comparação de Gênero":
-    st.write("## Comparação de Gênero")
+    st.write("## Comparação de Gênero - Hipótese 4 - Mulheres recebem menos que homens mesmo se filtrarmos por horas trabalhadas e nível de escolaridade")
 
     chart_placeholder_genero = st.empty()
     desc_placeholder_genero = st.empty()
@@ -357,11 +388,7 @@ if menu == "Comparação de Gênero":
 
 # ################## PÁGINA DA COMPARAÇÃO DE INVESTIMENTOS ##################
 if menu == "Comparação de Investimentos":
-    st.write("## Comparação de Investimentos")
-
-    # Criar gráficos de distribuição com Plotly
-    # fig1 = px.histogram(df, x="investment_status_naoDiscretizado", nbins=30, title="Distribuição de Investment Status")
-    # fig2 = px.histogram(df, x="age_naoDiscretizada", nbins=30, title="Distribuição de Idade")
+    st.write("## Comparação de Investimentos - Hipótese 5 - Indivíduos mais jovens se arriscam mais com investimentos do que indivíduos que são mais velhos")
 
     chart_placeholder_investimento = st.empty()
     desc_placeholder_investimentos = st.empty()
@@ -396,14 +423,23 @@ if menu == "Comparação de Investimentos":
     
     st.write(f"A probabilidade de uma pessoa entre {selected_age_min} e {selected_age_max} anos ter mais de {investment_threshold} de investimento é de {probability:.2f}%")
     
-    # Gráfico de distribuição de densidade acumulada com base na faixa etária selecionada
-    fig_investimento, ax = plt.subplots(figsize=(5, 2.5))
-    sns.kdeplot(df_filtered['investment_status_naoDiscretizado'], cumulative=True, fill=True, ax=ax)
-    ax.axhline(y=probability / 100, color='r', linestyle='--', label=f'Probabilidade: {probability:.2f}%')
-    ax.set_title("Distribuição Acumulada para a Faixa Etária Selecionada")
-    ax.set_xlabel("Investment Status")
-    ax.set_ylabel("Probabilidade Acumulada")
-    ax.legend()
+    fig_investimento, (ax_cdf, ax_pdf) = plt.subplots(ncols=2, figsize=(12, 4))
+
+    # Gráfico CDF (Distribuição Acumulada)
+    sns.kdeplot(df_filtered['investment_status_naoDiscretizado'], cumulative=True, fill=True, ax=ax_cdf)
+    ax_cdf.axhline(y=probability / 100, color='r', linestyle='--', label=f'Probabilidade: {probability:.2f}%')
+    ax_cdf.set_title("CDF: Distribuição Acumulada")
+    ax_cdf.set_xlabel("Investment Status")
+    ax_cdf.set_ylabel("Probabilidade Acumulada")
+    ax_cdf.legend()
+
+    # Gráfico PDF (Densidade de Probabilidade)
+    sns.kdeplot(df_filtered['investment_status_naoDiscretizado'], cumulative=False, fill=True, ax=ax_pdf)
+    ax_pdf.axvline(x=investment_threshold, color='r', linestyle='--', label=f'Investimento: ${investment_threshold}')
+    ax_pdf.set_title("PDF: Densidade de Probabilidade")
+    ax_pdf.set_xlabel("Investment Status")
+    ax_pdf.set_ylabel("Densidade")
+    ax_pdf.legend()
     
     chart_placeholder_investimento.pyplot(fig_investimento)
 
@@ -420,9 +456,10 @@ if menu == "Comparação de Investimentos":
 
 
 
+
 # ################## PÁGINA DA Distribuição PCA dos Dados ##################
 if menu == "Distribuição PCA dos Dados":
-    st.write("## Distribuição PCA dos Dados")
+    st.write("## Distribuição PCA dos Dados - Hipótese 1 - A renda dos indivíduos está diretamente relacionada a sua educação e seu gênero")
 
     chart_placeholder_pca = st.empty()
     desc_placeholder_pca = st.empty()
@@ -498,7 +535,7 @@ if menu == "Distribuição PCA dos Dados":
 
 # ################## PÁGINA DA Distribuição DA COMPARAÇÃO DE HORAS ##################
 if menu == "Comparação de Horas":
-    st.write("## Comparação de Horas")
+    st.write("## Comparação de Horas - Hipótese 3 - A quantidade de horas trabalhadas por semana não está relacionada à renda do indivíduo")
 
     # Use columns to display the two figures side by side at the top of the page
     col1, col2 = st.columns(2)
