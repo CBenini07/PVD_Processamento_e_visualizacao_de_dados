@@ -14,7 +14,7 @@ st.set_page_config(layout="wide")
 df = pd.read_csv("data_processada_final.csv", sep=",", decimal=",", header=0)
 
 # Criando a barra lateral
-menu = st.sidebar.selectbox("Escolha uma opção", ["Dataset", "Heatmap", "Comparação de Países", "Comparação de Gênero", "Comparação de Investimentos", "Distribuição PCA dos Dados"])
+menu = st.sidebar.selectbox("Escolha uma opção", ["Dataset", "Heatmap", "Comparação de Países", "Comparação de Gênero", "Comparação de Investimentos", "Distribuição PCA dos Dados", "Comparação de Horas"])
 
 # ################## PÁGINA DO DATASET ##################
 if menu == "Dataset":
@@ -434,7 +434,7 @@ if menu == "Distribuição PCA dos Dados":
     
     # Criando o gráfico 3D
     fig = plt.figure(figsize=(10, 7))
-    ax = fig.add_subplot(111, projection='3d')
+    ax = figPCA.add_subplot(111, projection='3d')
     
     # Normalizar cores para melhor visualização
     colors = plt.cm.viridis((dataPCA[color_feature] - dataPCA[color_feature].min()) / 
@@ -457,7 +457,7 @@ if menu == "Distribuição PCA dos Dados":
     ax.set_title('Visualização 3D dos Componentes Principais')
     
     # Adicionando barra de cores
-    cbar = fig.colorbar(ax.collections[0], ax=ax, shrink=0.5, aspect=10)
+    cbar = figPCA.colorbar(ax.collections[0], ax=ax, shrink=0.5, aspect=10)
     cbar.set_label(color_feature)
     
     # Adicionando legenda
@@ -467,4 +467,91 @@ if menu == "Distribuição PCA dos Dados":
     ax.view_init(30, 60)
     
     # Mostrando o gráfico no Streamlit
+    st.pyplot(figPCA)
+
+
+
+# ################## PÁGINA DA  Comparação de Horas ##################
+if menu == "Comparação de Horas":
+    st.write("## Comparação de Horas")
+
+    # Opções de filtro
+    workclassesHoras = [
+        "Qualquer área de trabalho", "workclass_Local-gov", "workclass_Private", "workclass_Self-emp-inc",
+        "workclass_Self-emp-not-inc", "workclass_State-gov", "workclass_Without-pay"
+    ]
+    selected_workclass = st.selectbox("Selecione a classe de trabalho:", workclassesHoras)
+
+    education_labels = {
+        0.125: "Médio Não Iniciado/Incompleto",
+        0.25: "Médio Completo",
+        0.625: "Superior Incompleto/Técnico",
+        0.75: "Bacharel",
+        0.875: "Mestrado",
+        1: "Doutorado"
+    }
+
+    # Slider que permite selecionar um intervalo (range) dentre os valores definidos
+    education_range = st.select_slider(
+        "Selecione o intervalo de education-num:",
+        options=list(education_labels.keys()),
+        value=(min(education_labels.keys()), max(education_labels.keys())),
+        format_func=lambda x: education_labels[x]
+    )
+
+    # Filtragem dos dados com base no intervalo selecionado
+    filtered_df = df[(df["education-num"] >= education_range[0]) & (df["education-num"] <= education_range[1])]
+
+    # Filtragem por classe de trabalho
+    if selected_workclass != "Qualquer área de trabalho":
+        filtered_df = filtered_df[filtered_df[selected_workclass] == 1]  # Filtra pela classe de trabalho selecionada
+    else:
+        filtered_df = filtered_df  # Considera todos os dados
+    
+    # Criar o violin plot
+    fig, ax = plt.subplots(figsize=(7, 5))
+    sns.violinplot(x="income", y="hours-per-week", data=filtered_df, ax=ax)
+
     st.pyplot(fig)
+
+
+
+    st.write("### Estatísticas dos Dados Filtrados")
+
+    # Definir os grupos de income que serão analisados
+    income_groups = [0, 1]
+
+    # Inicializar o dicionário com as estatísticas desejadas
+    stats_summary = {
+        "Total de pessoas selecionadas": {},
+        "Faixa de educação escolhida": {},
+        "Área de trabalho escolhida": {},
+        "Hours-per-week == 0 (%)": {},
+        "Hours-per-week == 0.5 (%)": {},
+        "Hours-per-week == 1 (%)": {}
+    }
+
+    # Preencher o dicionário para cada valor de income
+    for income_value in income_groups:
+        income_df = filtered_df[filtered_df["income"] == income_value]
+        total = len(income_df)
+        stats_summary["Total de pessoas selecionadas"][income_value] = total
+        # Os filtros de educação e área de trabalho são os mesmos para ambos os grupos
+        stats_summary["Faixa de educação escolhida"][income_value] = f"{education_range}"
+        stats_summary["Área de trabalho escolhida"][income_value] = selected_workclass
+
+        # Calcular porcentagens para cada grupo de hours-per-week
+        percent_0 = (income_df["hours-per-week"] == 0).sum() / total * 100 if total > 0 else 0
+        percent_0_5 = (income_df["hours-per-week"] == 0.5).sum() / total * 100 if total > 0 else 0
+        percent_1 = (income_df["hours-per-week"] == 1).sum() / total * 100 if total > 0 else 0
+
+        stats_summary["Hours-per-week == 0 (%)"][income_value] = f"{percent_0:.1f}%"
+        stats_summary["Hours-per-week == 0.5 (%)"][income_value] = f"{percent_0_5:.1f}%"
+        stats_summary["Hours-per-week == 1 (%)"][income_value] = f"{percent_1:.1f}%"
+
+    # Cria um DataFrame a partir do dicionário e transpõe para que cada linha represente uma estatística
+    stats_summary_df = pd.DataFrame(stats_summary).T
+    stats_summary_df.columns = ["income 0", "income 1"]
+
+    st.write(stats_summary_df)
+
