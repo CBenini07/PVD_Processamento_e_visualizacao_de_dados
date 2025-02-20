@@ -411,64 +411,63 @@ if menu == "Comparação de Investimentos":
 if menu == "Distribuição PCA dos Dados":
     st.write("## Distribuição PCA dos Dados")
 
-    # Seleção interativa das colunas para colorir e formatar os pontos
-    color_feature = st.selectbox("Escolha a coluna para colorir os pontos:", df.select_dtypes(include=['number']).columns)
-    shape_feature = st.selectbox("Escolha a coluna para definir a forma dos pontos:", df.select_dtypes(include=['number']).columns)
+    chart_placeholder_pca = st.empty()
+    desc_placeholder_pca = st.empty()
+
+    # Obtém a lista de colunas numéricas
+    numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
     
-    # Criando uma cópia do DataFrame original para realizar o PCA
+    # Define os índices padrão para "income" e "sex_Male"
+    default_color_index = numeric_columns.index("income") if "income" in numeric_columns else 0
+    default_shape_index = numeric_columns.index("sex_Male") if "sex_Male" in numeric_columns else 0
+
+    # Seleção interativa das colunas para colorir e definir o símbolo dos pontos
+    color_feature = st.selectbox("Escolha a coluna para colorir os pontos:", numeric_columns, index=default_color_index)
+    shape_feature = st.selectbox("Escolha a coluna para definir a forma dos pontos:", numeric_columns, index=default_shape_index)
+    
+    # Cria uma cópia do DataFrame para realizar o PCA
     dataPCA = df.copy()
     numerical_features = dataPCA.select_dtypes(include=['number'])
     
-    # Padronizando os dados
+    # Padroniza os dados
     scaler = StandardScaler()
     scaled_data = scaler.fit_transform(numerical_features)
     
-    # Aplicando o PCA para reduzir os dados a 3 componentes principais
+    # Aplica o PCA para reduzir os dados a 3 componentes principais
     pca = PCA(n_components=3)
     pca_result = pca.fit_transform(scaled_data)
     
-    # Adicionando os componentes principais ao DataFrame
+    # Adiciona os componentes principais ao DataFrame
     dataPCA['PC1'] = pca_result[:, 0]
     dataPCA['PC2'] = pca_result[:, 1]
     dataPCA['PC3'] = pca_result[:, 2]
     
-    # Criando o gráfico 3D
-    figPCA = plt.figure(figsize=(10, 7))
-    ax = figPCA.add_subplot(111, projection='3d')
+    # Cria o gráfico 3D interativo usando Plotly Express
+    figPCA = px.scatter_3d(
+        dataPCA, 
+        x='PC1', y='PC2', z='PC3',
+        color=color_feature,
+        symbol=shape_feature,
+        title="Visualização 3D dos Componentes Principais",
+        labels={"PC1": "Componente Principal 1", "PC2": "Componente Principal 2", "PC3": "Componente Principal 3"}
+    )
     
-    # Normalizar cores para melhor visualização
-    colors = plt.cm.viridis((dataPCA[color_feature] - dataPCA[color_feature].min()) / 
-                             (dataPCA[color_feature].max() - dataPCA[color_feature].min()))
-    
-    # Definir marcadores com base na variável escolhida
-    unique_shapes = np.unique(dataPCA[shape_feature])
-    markers = ['o', 's', '^', 'D', 'P', '*', 'X', 'v']  # Lista de marcadores disponíveis
-    shape_dict = {val: markers[i % len(markers)] for i, val in enumerate(unique_shapes)}
-    
-    for val in unique_shapes:
-        subset = dataPCA[dataPCA[shape_feature] == val]
-        ax.scatter(subset['PC1'], subset['PC2'], subset['PC3'], c=colors[dataPCA[shape_feature] == val], 
-                   marker=shape_dict[val], edgecolor='k', alpha=0.7, label=f"{shape_feature}: {val}")
-    
-    # Adicionando rótulos
-    ax.set_xlabel('Componente Principal 1')
-    ax.set_ylabel('Componente Principal 2')
-    ax.set_zlabel('Componente Principal 3')
-    ax.set_title('Visualização 3D dos Componentes Principais')
-    
-    # Adicionando barra de cores
-    cbar = figPCA.colorbar(ax.collections[0], ax=ax, shrink=0.5, aspect=10)
-    cbar.set_label(color_feature)
-    
-    # Adicionando legenda
-    ax.legend()
-    
-    # Ajustando ângulo de visualização
-    ax.view_init(30, 60)
-    
-    # Mostrando o gráfico no Streamlit
-    st.pyplot(figPCA)
+    # Atualiza o layout para definir um tamanho maior para o gráfico
+    figPCA.update_layout(width=1000, height=800)
 
+    chart_placeholder_pca.plotly_chart(figPCA, use_container_width=True)
+
+    pca_desc = f"""
+        **Descrição do Gráfico PCA:**
+        O gráfico acima apresenta uma visualização em 3 dimensões de todos os dados presentes na dataframe.
+        Esse gráfico foi gerado com o Principal Component Analysis, onde é realizado uma redução (resumo) de todas as
+        features presentes para apenas 3, permitindo assim essa visualização.
+        Através do gráfico também podemos observar que as cores e as formas mudam conforme a variável selecionada.
+        Nesse caso as variáveis escolhidas para essa visualização são {color_feature} para cores e {shape_feature} para formato.
+        Com base nesse gráfico, quando selecionamos para ver o contraste entre o income e o sex_Male, conseguimos ver de modo ainda melhor
+        que os pontos azuis (renda anual superior a \$50.000) possuem mais circulos (homens) do que quadrados (mulheres). 
+        """
+    desc_placeholder_pca.markdown(pca_desc)
 
 # ################## PÁGINA DA Distribuição DA COMPARAÇÃO DE HORAS ##################
 if menu == "Comparação de Horas":
@@ -513,7 +512,7 @@ if menu == "Comparação de Horas":
         filtered_df = filtered_df[filtered_df[selected_workclass] == 1]
     
     # Criar o violin plot
-    fig, ax = plt.subplots(figsize=(7, 5))
+    figHoras, ax = plt.subplots(figsize=(7, 5))
     sns.violinplot(x="income", y="hours-per-week", data=filtered_df, ax=ax)
     
     # Gerar a tabela de estatísticas
@@ -546,7 +545,7 @@ if menu == "Comparação de Horas":
     stats_summary_df = pd.DataFrame(stats_summary).T
     stats_summary_df.columns = ["Renda Anual Inferior a $50.000", "Renda Anual Superior a $50.000"]
 
-    chart_placeholder_horas.pyplot(fig)
+    chart_placeholder_horas.pyplot(figHoras)
     stats_placeholder_horas.write(stats_summary_df)
 
     horas_desc = f"""
