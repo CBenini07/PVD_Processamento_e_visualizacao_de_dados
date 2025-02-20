@@ -3,6 +3,10 @@ import pandas as pd
 import plotly.express as px
 import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 st.set_page_config(layout="wide")
 
@@ -406,3 +410,61 @@ if menu == "Comparação de Investimentos":
 # ################## PÁGINA DA Distribuição PCA dos Dados ##################
 if menu == "Distribuição PCA dos Dados":
     st.write("## Distribuição PCA dos Dados")
+
+    # Seleção interativa das colunas para colorir e formatar os pontos
+    color_feature = st.selectbox("Escolha a coluna para colorir os pontos:", df.select_dtypes(include=['number']).columns)
+    shape_feature = st.selectbox("Escolha a coluna para definir a forma dos pontos:", df.select_dtypes(include=['number']).columns)
+    
+    # Criando uma cópia do DataFrame original para realizar o PCA
+    dataPCA = df.copy()
+    numerical_features = dataPCA.select_dtypes(include=['number'])
+    
+    # Padronizando os dados
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(numerical_features)
+    
+    # Aplicando o PCA para reduzir os dados a 3 componentes principais
+    pca = PCA(n_components=3)
+    pca_result = pca.fit_transform(scaled_data)
+    
+    # Adicionando os componentes principais ao DataFrame
+    dataPCA['PC1'] = pca_result[:, 0]
+    dataPCA['PC2'] = pca_result[:, 1]
+    dataPCA['PC3'] = pca_result[:, 2]
+    
+    # Criando o gráfico 3D
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Normalizar cores para melhor visualização
+    colors = plt.cm.viridis((dataPCA[color_feature] - dataPCA[color_feature].min()) / 
+                             (dataPCA[color_feature].max() - dataPCA[color_feature].min()))
+    
+    # Definir marcadores com base na variável escolhida
+    unique_shapes = np.unique(dataPCA[shape_feature])
+    markers = ['o', 's', '^', 'D', 'P', '*', 'X', 'v']  # Lista de marcadores disponíveis
+    shape_dict = {val: markers[i % len(markers)] for i, val in enumerate(unique_shapes)}
+    
+    for val in unique_shapes:
+        subset = dataPCA[dataPCA[shape_feature] == val]
+        ax.scatter(subset['PC1'], subset['PC2'], subset['PC3'], c=colors[dataPCA[shape_feature] == val], 
+                   marker=shape_dict[val], edgecolor='k', alpha=0.7, label=f"{shape_feature}: {val}")
+    
+    # Adicionando rótulos
+    ax.set_xlabel('Componente Principal 1')
+    ax.set_ylabel('Componente Principal 2')
+    ax.set_zlabel('Componente Principal 3')
+    ax.set_title('Visualização 3D dos Componentes Principais')
+    
+    # Adicionando barra de cores
+    cbar = fig.colorbar(ax.collections[0], ax=ax, shrink=0.5, aspect=10)
+    cbar.set_label(color_feature)
+    
+    # Adicionando legenda
+    ax.legend()
+    
+    # Ajustando ângulo de visualização
+    ax.view_init(30, 60)
+    
+    # Mostrando o gráfico no Streamlit
+    st.pyplot(fig)
