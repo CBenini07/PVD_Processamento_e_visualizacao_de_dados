@@ -262,15 +262,18 @@ if menu == "Comparação de Investimentos":
     st.write("## Comparação de Investimentos")
 
     # Criar gráficos de distribuição com Plotly
-    fig1 = px.histogram(df, x="investment_status_naoDiscretizado", nbins=30, title="Distribuição de Investment Status")
-    fig2 = px.histogram(df, x="age_naoDiscretizada", nbins=30, title="Distribuição de Idade")
+    # fig1 = px.histogram(df, x="investment_status_naoDiscretizado", nbins=30, title="Distribuição de Investment Status")
+    # fig2 = px.histogram(df, x="age_naoDiscretizada", nbins=30, title="Distribuição de Idade")
+
+    chart_placeholder_investimento = st.empty()
+    desc_placeholder_investimentos = st.empty()
 
     # Exibir os gráficos
-    coluna_investimento1, coluna_investimento2 = st.columns(2)
-    with coluna_investimento1:
-        st.plotly_chart(fig1, use_container_width=True)
-    with coluna_investimento2:
-        st.plotly_chart(fig2, use_container_width=True)
+    # coluna_investimento1, coluna_investimento2 = st.columns(2)
+    # with coluna_investimento1:
+    #     st.plotly_chart(fig1, use_container_width=True)
+    # with coluna_investimento2:
+    #     st.plotly_chart(fig2, use_container_width=True)
 
     # Normalização Z-score (média = 0, variância = 1)
     df['investment_status_normalized'] = (df['investment_status_naoDiscretizado'] - df['investment_status_naoDiscretizado'].mean()) / df['investment_status_naoDiscretizado'].std()
@@ -296,7 +299,7 @@ if menu == "Comparação de Investimentos":
     st.write(f"A probabilidade de uma pessoa entre {selected_age_min} e {selected_age_max} anos ter mais de {investment_threshold} de investimento é de {probability:.2f}%")
     
     # Gráfico de distribuição de densidade acumulada com base na faixa etária selecionada
-    fig, ax = plt.subplots(figsize=(6, 3))
+    fig, ax = plt.subplots(figsize=(5, 2.5))
     sns.kdeplot(df_filtered['investment_status_naoDiscretizado'], cumulative=True, fill=True, ax=ax)
     ax.axhline(y=probability / 100, color='r', linestyle='--', label=f'Probabilidade: {probability:.2f}%')
     ax.set_title("Distribuição Acumulada para a Faixa Etária Selecionada")
@@ -304,4 +307,15 @@ if menu == "Comparação de Investimentos":
     ax.set_ylabel("Probabilidade Acumulada")
     ax.legend()
     
-    st.pyplot(fig)
+    chart_placeholder_investimento.pyplot(fig)
+
+    investimento_desc = f"""
+        **Descrição do Gráfico de Renda:**
+        O gráfico presente apresenta a Distribuição Acumulada dos valores obtidos com investimentos pelas população que participiou do Senso Demográfico.
+        Nessa amostragem estão inclusas as pessoas cuja idade é superior a {selected_age_min} anos de idade e inferior a {selected_age_max} anos de idade.
+        Também é mostrado um valor de limite mínimo de lucro obtido com investimentos para servir como base para cálculos de probabilidade.
+        O limite selecionado é de \${investment_threshold}, ou seja, através do gráfico é demonstrado que a probabilidade de alguém entre {selected_age_min} e {selected_age_max} anos
+        possuir um lucro superior a \${investment_threshold} é de {probability:.2f}%.
+        """
+    desc_placeholder_investimentos.markdown(investimento_desc)
+
