@@ -442,31 +442,45 @@ if menu == "Distribuição PCA dos Dados":
     dataPCA['PC2'] = pca_result[:, 1]
     dataPCA['PC3'] = pca_result[:, 2]
     
-    # Cria o gráfico 3D interativo usando Plotly Express
+    # Cria o gráfico 3D interativo usando Plotly Express com novas cores e bordas nos pontos
     figPCA = px.scatter_3d(
         dataPCA, 
         x='PC1', y='PC2', z='PC3',
         color=color_feature,
         symbol=shape_feature,
+        color_continuous_scale="Viridis",  # Paleta de cores
         title="Visualização 3D dos Componentes Principais",
         labels={"PC1": "Componente Principal 1", "PC2": "Componente Principal 2", "PC3": "Componente Principal 3"}
     )
-    
-    # Atualiza o layout para definir um tamanho maior para o gráfico
-    figPCA.update_layout(width=1000, height=800)
 
+    # Adiciona borda aos pontos
+    figPCA.update_traces(marker=dict(size=6, line=dict(width=2, color='black')))  
+
+    # Atualiza o layout para melhor contraste
+    figPCA.update_layout(
+        width=1000, height=800,
+        scene=dict(
+            xaxis=dict(backgroundcolor="rgb(230, 230, 230)"),  # Fundo do eixo X
+            yaxis=dict(backgroundcolor="rgb(230, 230, 230)"),  # Fundo do eixo Y
+            zaxis=dict(backgroundcolor="rgb(230, 230, 230)"),  # Fundo do eixo Z
+        ),
+        coloraxis_colorbar=dict(title=color_feature)  # Ajusta legenda da cor
+    )
+
+    # Exibe o gráfico no Streamlit
     chart_placeholder_pca.plotly_chart(figPCA, use_container_width=True)
 
+    # Adiciona a descrição
     pca_desc = f"""
         **Descrição do Gráfico PCA:**
         O gráfico acima apresenta uma visualização em 3 dimensões de todos os dados presentes na dataframe.
-        Esse gráfico foi gerado com o Principal Component Analysis, onde é realizado uma redução (resumo) de todas as
+        Esse gráfico foi gerado com o Principal Component Analysis, onde é realizada uma redução (resumo) de todas as
         features presentes para apenas 3, permitindo assim essa visualização.
         Através do gráfico também podemos observar que as cores e as formas mudam conforme a variável selecionada.
-        Nesse caso as variáveis escolhidas para essa visualização são {color_feature} para cores e {shape_feature} para formato.
+        Nesse caso, as variáveis escolhidas para essa visualização são {color_feature} para cores e {shape_feature} para formato.
         Com base nesse gráfico, quando selecionamos para ver o contraste entre o income e o sex_Male, conseguimos ver de modo ainda melhor
-        que os pontos azuis (renda anual superior a \$50.000) possuem mais circulos (homens) do que quadrados (mulheres). 
-        """
+        que os pontos azuis (renda anual superior a \$50.000) possuem mais círculos (homens) do que quadrados (mulheres). 
+    """
     desc_placeholder_pca.markdown(pca_desc)
 
 # ################## PÁGINA DA Distribuição DA COMPARAÇÃO DE HORAS ##################
