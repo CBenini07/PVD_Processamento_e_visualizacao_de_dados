@@ -10,7 +10,7 @@ st.set_page_config(layout="wide")
 df = pd.read_csv("data_processada_final.csv", sep=",", decimal=",", header=0)
 
 # Criando a barra lateral
-menu = st.sidebar.selectbox("Escolha uma opção", ["Dataset", "Heatmap", "Comparação de Países", "Comparação de Investimentos"])
+menu = st.sidebar.selectbox("Escolha uma opção", ["Dataset", "Heatmap", "Comparação de Países", "Comparação de Gênero", "Comparação de Investimentos", "Distribuição PCA dos Dados"])
 
 # ################## PÁGINA DO DATASET ##################
 if menu == "Dataset":
@@ -88,13 +88,13 @@ elif menu == "Comparação de Países":
     with coluna2_paises:
         group_b = st.multiselect("Selecione os países do Grupo B", countries, default=list(selected_countries))
 
-    workclasses = [
+    workclassesPais = [
         "Qualquer área de trabalho",
         "workclass_Local-gov", "workclass_Private", "workclass_Self-emp-inc",
         "workclass_Self-emp-not-inc", "workclass_State-gov", "workclass_Without-pay"
     ]
 
-    selected_workclass = st.selectbox("Selecione a classe de trabalho:", workclasses)
+    selected_workclass = st.selectbox("Selecione a classe de trabalho:", workclassesPais)
 
     # Data processing
     if selected_workclass == "Qualquer área de trabalho":
@@ -257,6 +257,87 @@ elif menu == "Comparação de Países":
 
 
 
+
+# ################## PÁGINA DA COMPARAÇÃO DE GENERO ##################
+if menu == "Comparação de Gênero":
+    st.write("## Comparação de Gênero")
+
+    chart_placeholder_genero = st.empty()
+    desc_placeholder_genero = st.empty()
+
+    # Lista de classes de trabalho
+    workclassesGenero = [
+        "Qualquer área de trabalho",
+        "workclass_Local-gov", "workclass_Private", "workclass_Self-emp-inc",
+        "workclass_Self-emp-not-inc", "workclass_State-gov", "workclass_Without-pay"
+    ]
+
+    # Caixa de seleção para escolher a classe de trabalho
+    selected_workclass = st.selectbox("Selecione a classe de trabalho:", workclassesGenero)
+
+    # Caixa de seleção para escolher o valor de hours-per-week
+    hours_values = [0, 0.5, 1, "Todos"] # menos de 40h, igual a 40h, mais de 40h
+    selected_hours = st.selectbox("Selecione a carga horária (hours-per-week):", hours_values)
+
+    # Filtragem por classe de trabalho
+    if selected_workclass != "Qualquer área de trabalho":
+        df_filtered = df[df[selected_workclass] == 1]  # Filtra pela classe de trabalho selecionada
+    else:
+        df_filtered = df  # Considera todos os dados
+
+    # Filtragem por hours-per-week
+    if selected_hours != "Todos":
+        df_filtered = df_filtered[df_filtered["hours-per-week"] == selected_hours]
+
+    # Contagem total de homens e mulheres no conjunto filtrado
+    total_women = len(df_filtered[df_filtered['sex_Male'] == 0])
+    total_men = len(df_filtered[df_filtered['sex_Male'] == 1])
+
+    # Contagem de mulheres e homens com income == 1
+    women_with_income = len(df_filtered[(df_filtered['sex_Male'] == 0) & (df_filtered['income'] == 1)])
+    men_with_income = len(df_filtered[(df_filtered['sex_Male'] == 1) & (df_filtered['income'] == 1)])
+
+    # Cálculo da porcentagem
+    women_income_percentage = (women_with_income / total_women) * 100 if total_women > 0 else 0
+    men_income_percentage = (men_with_income / total_men) * 100 if total_men > 0 else 0
+
+    # Exibição dos resultados
+    st.write(f"🔹 **De um total de {total_women} mulheres, {women_income_percentage:.2f}% delas ganham mais de \$50k, trabalham na área de: {selected_workclass}, por {selected_hours} horas/semana):**")
+    st.write(f"🔹 **De um total de {total_men} homens, {men_income_percentage:.2f}% delas ganham mais de \$50k, trabalham na área de: {selected_workclass}, por {selected_hours} horas/semana):**")
+
+    procentagem_pizza_mulher = (women_income_percentage * 100) / (women_income_percentage+men_income_percentage)
+    procentagem_pizza_homem = (men_income_percentage * 100) / (women_income_percentage+men_income_percentage)
+
+
+    # Criando o gráfico de pizza
+    fig_genero, ax = plt.subplots(figsize=(2, 2))
+    labels = ["Mulheres", "Homens"]
+    sizes = [women_income_percentage, men_income_percentage]
+    colors = ["#ff9999", "#66b3ff"]  # Cores para mulheres e homens
+    explode = (0.1, 0)  # Destacar fatia das mulheres
+    ax.pie(sizes, labels=labels, autopct="%1.1f%%", colors=colors, startangle=90, explode=explode, shadow=True)
+    ax.set_title("Comparação de Probabilidade de Renda Anual Superior a $50.000")
+
+
+    chart_placeholder_genero.pyplot(fig_genero)
+
+    genero_desc = f"""
+        **Descrição do Gráfico de Renda por Gênero:**
+        O gráfico mostrado acima é um gráfico de Pizza que apresenta a proporção entre Homens e Mulheres que ganham salários anuais superiores a \$50.000 anuais.
+        Ele foi construído com base na probabilidade de Homens e Mulheres, que trabalham na mesma área de atuação ({selected_workclass}),
+        e com a mesma quantidade de Horas Semanais ({selected_hours}) ganharem mais de \$50.000 anuais.
+        Nessa representação específica, temos que das {total_women} mulheres que atuam nessa área por essas horas, apenas {women_income_percentage:.1f}% ganham acima dos \$50.000 anuais.
+        Enquanto para os Homens nessa mesma área de atuação e que trabalham pela mesma área, verificamos que existem {total_men} homens nessa categoria,
+        dos quais {men_income_percentage:.1f}% recebem acima dos \$50.000 anuais.
+        Assim, considerando a soma dessas porcentagens ({women_income_percentage:.1f} e {men_income_percentage:.1f}), é feita a construção do Gráfico de Pizza.
+        Dessa forma, as porcentagens contidas nesse gráfico indicam que:
+        A proporção dos indivíduos mulheres que recebem mais de \$50.000, trabalha na área da {selected_workclass}, por {selected_hours} semanais é de: {procentagem_pizza_mulher:.1f}%.
+        Enquanto a proporção dos homens com essas mesmas características é de: {procentagem_pizza_homem:.1f}%.
+        """
+    desc_placeholder_genero.markdown(genero_desc)
+
+
+
 # ################## PÁGINA DA COMPARAÇÃO DE INVESTIMENTOS ##################
 if menu == "Comparação de Investimentos":
     st.write("## Comparação de Investimentos")
@@ -299,7 +380,7 @@ if menu == "Comparação de Investimentos":
     st.write(f"A probabilidade de uma pessoa entre {selected_age_min} e {selected_age_max} anos ter mais de {investment_threshold} de investimento é de {probability:.2f}%")
     
     # Gráfico de distribuição de densidade acumulada com base na faixa etária selecionada
-    fig, ax = plt.subplots(figsize=(5, 2.5))
+    fig_investimento, ax = plt.subplots(figsize=(5, 2.5))
     sns.kdeplot(df_filtered['investment_status_naoDiscretizado'], cumulative=True, fill=True, ax=ax)
     ax.axhline(y=probability / 100, color='r', linestyle='--', label=f'Probabilidade: {probability:.2f}%')
     ax.set_title("Distribuição Acumulada para a Faixa Etária Selecionada")
@@ -307,7 +388,7 @@ if menu == "Comparação de Investimentos":
     ax.set_ylabel("Probabilidade Acumulada")
     ax.legend()
     
-    chart_placeholder_investimento.pyplot(fig)
+    chart_placeholder_investimento.pyplot(fig_investimento)
 
     investimento_desc = f"""
         **Descrição do Gráfico de Renda:**
@@ -319,3 +400,9 @@ if menu == "Comparação de Investimentos":
         """
     desc_placeholder_investimentos.markdown(investimento_desc)
 
+
+
+
+# ################## PÁGINA DA Distribuição PCA dos Dados ##################
+if menu == "Distribuição PCA dos Dados":
+    st.write("## Distribuição PCA dos Dados")
