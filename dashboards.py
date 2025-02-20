@@ -433,7 +433,7 @@ if menu == "Distribuição PCA dos Dados":
     dataPCA['PC3'] = pca_result[:, 2]
     
     # Criando o gráfico 3D
-    fig = plt.figure(figsize=(10, 7))
+    figPCA = plt.figure(figsize=(10, 7))
     ax = figPCA.add_subplot(111, projection='3d')
     
     # Normalizar cores para melhor visualização
@@ -470,10 +470,16 @@ if menu == "Distribuição PCA dos Dados":
     st.pyplot(figPCA)
 
 
-
-# ################## PÁGINA DA  Comparação de Horas ##################
+# ################## PÁGINA DA Distribuição DA COMPARAÇÃO DE HORAS ##################
 if menu == "Comparação de Horas":
     st.write("## Comparação de Horas")
+
+    # Use columns to display the two figures side by side at the top of the page
+    col1, col2 = st.columns(2)
+    chart_placeholder_horas = col1.empty()
+    stats_placeholder_horas = col2.empty()
+
+    desc_placeholder_horas = st.empty()
 
     # Opções de filtro
     workclassesHoras = [
@@ -502,56 +508,62 @@ if menu == "Comparação de Horas":
     # Filtragem dos dados com base no intervalo selecionado
     filtered_df = df[(df["education-num"] >= education_range[0]) & (df["education-num"] <= education_range[1])]
 
-    # Filtragem por classe de trabalho
+    # Filtragem por classe de trabalho (lembrando que os dados estão distribuídos em colunas)
     if selected_workclass != "Qualquer área de trabalho":
-        filtered_df = filtered_df[filtered_df[selected_workclass] == 1]  # Filtra pela classe de trabalho selecionada
-    else:
-        filtered_df = filtered_df  # Considera todos os dados
+        filtered_df = filtered_df[filtered_df[selected_workclass] == 1]
     
     # Criar o violin plot
     fig, ax = plt.subplots(figsize=(7, 5))
     sns.violinplot(x="income", y="hours-per-week", data=filtered_df, ax=ax)
-
-    st.pyplot(fig)
-
-
-
-    st.write("### Estatísticas dos Dados Filtrados")
-
-    # Definir os grupos de income que serão analisados
+    
+    # Gerar a tabela de estatísticas
+    # st.write("### Estatísticas dos Dados Filtrados")
     income_groups = [0, 1]
-
-    # Inicializar o dicionário com as estatísticas desejadas
     stats_summary = {
         "Total de pessoas selecionadas": {},
         "Faixa de educação escolhida": {},
         "Área de trabalho escolhida": {},
-        "Hours-per-week == 0 (%)": {},
-        "Hours-per-week == 0.5 (%)": {},
-        "Hours-per-week == 1 (%)": {}
+        "Menos de 40h Semanais (%)": {},
+        "Exatamente 40h Semanais (%)": {},
+        "Mais de 40h Semanais (%)": {}
     }
 
-    # Preencher o dicionário para cada valor de income
     for income_value in income_groups:
         income_df = filtered_df[filtered_df["income"] == income_value]
         total = len(income_df)
         stats_summary["Total de pessoas selecionadas"][income_value] = total
-        # Os filtros de educação e área de trabalho são os mesmos para ambos os grupos
         stats_summary["Faixa de educação escolhida"][income_value] = f"{education_range}"
         stats_summary["Área de trabalho escolhida"][income_value] = selected_workclass
 
-        # Calcular porcentagens para cada grupo de hours-per-week
         percent_0 = (income_df["hours-per-week"] == 0).sum() / total * 100 if total > 0 else 0
         percent_0_5 = (income_df["hours-per-week"] == 0.5).sum() / total * 100 if total > 0 else 0
         percent_1 = (income_df["hours-per-week"] == 1).sum() / total * 100 if total > 0 else 0
 
-        stats_summary["Hours-per-week == 0 (%)"][income_value] = f"{percent_0:.1f}%"
-        stats_summary["Hours-per-week == 0.5 (%)"][income_value] = f"{percent_0_5:.1f}%"
-        stats_summary["Hours-per-week == 1 (%)"][income_value] = f"{percent_1:.1f}%"
+        stats_summary["Menos de 40h Semanais (%)"][income_value] = f"{percent_0:.1f}%"
+        stats_summary["Exatamente 40h Semanais (%)"][income_value] = f"{percent_0_5:.1f}%"
+        stats_summary["Mais de 40h Semanais (%)"][income_value] = f"{percent_1:.1f}%"
 
-    # Cria um DataFrame a partir do dicionário e transpõe para que cada linha represente uma estatística
     stats_summary_df = pd.DataFrame(stats_summary).T
-    stats_summary_df.columns = ["income 0", "income 1"]
+    stats_summary_df.columns = ["Renda Anual Inferior a $50.000", "Renda Anual Superior a $50.000"]
 
-    st.write(stats_summary_df)
+    chart_placeholder_horas.pyplot(fig)
+    stats_placeholder_horas.write(stats_summary_df)
+
+    horas_desc = f"""
+        **Descrição do Violin Plot e da Tabela dos dados com base nas Horas:**
+        O gráfico Violin Plot apresentado acima mostra a comparação entre as distribuições da quantidade de pessoas que 
+        trabalham menos de 40 horas semanais, exatamante 40 horas semanais e mais de 40 horas semanais com base na renda
+        que elas possuem, podendo ser mais de \$50.000 anuais ou menos de \$50.000 anuais.
+        Neste Gráfico específico, em conjunto com a tabela ao lado, pode-se observar que considerando apenas as pessoas
+        que trabalham na área de: {selected_workclass}, e, possuem um nível de escolaridade entre {education_range[0]}
+        e {education_range[1]}, temos que para as pessoas com renda inferior a \$50.000 anuais, 
+        {stats_summary["Menos de 40h Semanais (%)"][0]} delas trabalham menos de 40 horas semanais, 
+        {stats_summary["Exatamente 40h Semanais (%)"][0]} delas trabalham exatamente 40 horas semanais e
+        {stats_summary["Mais de 40h Semanais (%)"][0]} delas trabalham mais de 40 horas semanais.
+        Já no grupo das pessoas que tem renda anual superior a \$50.000, observa-se que: 
+        {stats_summary["Menos de 40h Semanais (%)"][1]} delas trabalham menos de 40 horas semanais, 
+        {stats_summary["Exatamente 40h Semanais (%)"][1]} delas trabalham exatamente 40 horas semanais e
+        {stats_summary["Mais de 40h Semanais (%)"][1]} delas trabalham mais de 40 horas semanais.
+        """
+    desc_placeholder_horas.markdown(horas_desc)
 
