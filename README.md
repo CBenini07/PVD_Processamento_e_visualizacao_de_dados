@@ -19,7 +19,8 @@ pip3 install streamlit \
                 matplotlib \
                 seaborn \
                 ucimlrepo \
-                statsmodels
+                mlxtend \
+                statsmodels 
 ```
 
 ## Execução do dashboard

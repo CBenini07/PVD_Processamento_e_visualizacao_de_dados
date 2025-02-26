@@ -7,8 +7,34 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from mlxtend.frequent_patterns import apriori, association_rules
 
 st.set_page_config(layout="wide")
+
+# Toggle para Modo Preto e Branco na sidebar usando a classe .stApp
+bw_mode = st.sidebar.checkbox("Ativar Modo Preto e Branco")
+if bw_mode:
+    st.markdown(
+        """
+        <style>
+        .stApp {
+            filter: grayscale(100%) !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+else:
+    st.markdown(
+        """
+        <style>
+        .stApp {
+            filter: none !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # Carregando os dados
 df = pd.read_csv("data_processada_final.csv", sep=",", decimal=",", header=0)
@@ -23,62 +49,103 @@ if menu == "Dataset":
     st.dataframe(df)
 
 
-# ################## PÁGINA DO HEATMAP ##################
+# ################## PÁGINA DA HIPOTESE 1 ##################
 elif menu == "Hipotese 1":
-    st.write("## Heatmap dos Atributos - Hipótese 1 - A renda dos indivíduos está diretamente relacionada a sua educação e seu gênero")
+    st.write("## Hipótese 1 - A renda dos indivíduos está diretamente relacionada a sua educação e seu gênero.")
 
-    # Criando a tabela em Markdown
-    markdown_table = """
-    | antecedents | consequents | support  | confidence | lift     |
-    |-------------|-------------|----------|------------|----------|
-    | (income)    | (sex_Male)  | 0.213311 | 0.842445   | 1.260901 |
-    """
+    # Criando duas colunas: Heatmap (esquerda) e Tabela (direita)
+    col_hipo1, col_hipo2 = st.columns(2)
 
+    # **HEATMAP** (na esquerda)
+    with col_hipo1:
+        st.subheader('Matriz de Correlação Heatmap')
+        default_features = ['income', 'sex_Male', 'education-num', 'age', 'investment_status', 'race_Black']
+        selected_features = st.multiselect("Selecione os atributos para o Heatmap", df.columns.tolist(), default=default_features)
+        
+        if selected_features:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.heatmap(df[selected_features].corr(), annot=True, cmap="coolwarm", ax=ax)
+            st.pyplot(fig)
+        else:
+            st.warning("Selecione pelo menos um atributo para exibir o Heatmap.")
 
-
-    # Exibindo a tabela no Streamlit
-    st.title('Tabela de Regras de Associação')
-    st.markdown(markdown_table)
-
-    # Descrição abaixo da tabela
-    apriori_desc = f"""
-        **Descrição da Tabela:**
-        É apresentado acima uma tabela de regras de associação Apriori comparando as variáveis income, 
-        que é uma variável booleana indicando se uma uma pessoa recebe um valor acima de \$50.000 anuais como antecedente,
-        e a variável sex_Male, que indica se a pessoa é do gênero Masculino ou Feminino.
-        Como principais resultados coletados nessa tabela, visualiza-se o suporte, que nos mostra que a combinação entre income e sex_Male
-        aparece em 21% do dataset, 
-        e também temos que o confidence é de 0.84, ou seja, que quando uma pessoa tem o
-        income maior dos \$50.000 anuais, a chance dessa pessoa ser homem é de 84%.
-    """
-    st.markdown(apriori_desc)
-
-
-    # HEATMAP
-
-    default_features = ['income', 'sex_Male', 'education-num', 'age', 'investment_status', 'race_Black', 'race_White']
-    selected_features = st.multiselect("Selecione os atributos para o Heatmap", df.columns.tolist(), default=default_features)
-    
-    st.title('Matriz de Correlação Heatmap')
-    if selected_features:
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.heatmap(df[selected_features].corr(), annot=True, cmap="coolwarm", ax=ax)
-        st.pyplot(fig)
-    else:
-        st.warning("Selecione pelo menos um atributo para exibir o Heatmap.")
-
-    desc_placeholder_heatmap = st.empty()
-
-    heatmap_desc = f"""
+        st.markdown(f"""
         **Descrição do Heatmap:**
-        O Gráfico de correlação Heatmap mostrado acima apresenta as correlações entre as seguintes variáveis: {', '.join(selected_features)}.
+        O Gráfico de correlação Heatmap mostrado acima apresenta as correlações através de uma matriz diagonal a respeito das seguintes variáveis: **{', '.join(selected_features)}**.
+
         As correlações presentes vão de -1 a 1, em que quando a correlação entre 2 atributos é mais perto de 1, indica-se uma correlação positiva,
         enquanto uma correlação mais perto de -1, obtemos uma correlação negativa entre essas 2 variáveis.
         Como destque nesse gráfico, percebe-se uma correlação de 0.22 entre os atributos “Income” e “sex_male”, e de 0.35 entre “Income” e “education”,
         que representando relações fraca e moderada respectivamente, assim ressaltando a hipotese de haver uma correlação significativa entre essas variáveis. 
 
+        """)
+
+
+    # **TABELA APRIORI** (na direita)
+    with col_hipo2:
+        st.subheader('Tabelas de Regras de Associação Apriori')
+
+        markdown_table = """
+
+
+        | antecedents | consequents | support  | confidence | lift   |
+        |------------|------------|----------|------------|----------|
+        | (income)   | (sex_Male) | 0.213311 | 0.842445   | 1.260901 |
         """
-    desc_placeholder_heatmap.markdown(heatmap_desc)
+
+        st.markdown(markdown_table)
+
+        st.markdown(f"""
+            **Descrição da Tabela:**
+            É apresentado acima uma tabela de regras de associação Apriori comparando as variáveis **income**, 
+            que é uma variável booleana indicando se uma uma pessoa recebe um valor acima de \$50.000 anuais como antecedente,
+            e a variável **sex_Male**, que indica se a pessoa é do gênero Masculino ou Feminino.
+            Como principais resultados coletados nessa tabela, visualiza-se o suporte, que nos mostra que a combinação entre income e sex_Male
+            aparece em 21% do dataset, 
+            e também temos que o confidence é de 0.84, ou seja, que quando uma pessoa tem o
+            income maior dos \$50.000 anuais, a chance dessa pessoa ser homem é de 84%.
+        """)
+
+
+        st.subheader('Tabela Dinâmica')
+        # Selecionando dois atributos dinamicamente
+        selected_apriori_features = st.multiselect(
+            "Selecione dois atributos para a Tabela Apriori:",
+            df.columns.tolist(),
+            default=['income', 'sex_Male']
+        )
+
+        if len(selected_apriori_features) == 2:
+            # Filtrando apenas as colunas escolhidas
+            df_subset = df[selected_apriori_features]
+
+            # Convertendo para valores binários (one-hot encoding)
+            df_encoded = pd.get_dummies(df_subset)
+
+            # Aplicando o algoritmo Apriori
+            frequent_itemsets = apriori(df_encoded, min_support=0.1, use_colnames=True)
+            rules = association_rules(frequent_itemsets, metric="confidence", min_threshold=0.6)
+
+            # Verificando se há regras geradas
+            if not rules.empty:
+                # Exibir regras formatadas no Streamlit
+                st.dataframe(rules[['antecedents', 'consequents', 'support', 'confidence', 'lift']])
+            else:
+                st.warning("Nenhuma regra encontrada com os atributos selecionados.")
+
+            # Descrição dinâmica
+            st.markdown(f"""
+            **Descrição da Tabela:**
+            A tabela acima apresenta as regras de associação Apriori entre **{selected_apriori_features[0]}** e **{selected_apriori_features[1]}**.
+
+            - **Suporte (support):** Indica a frequência da regra no dataset.
+            - **Confiança (confidence):** Mede a probabilidade da regra ser verdadeira.
+            - **Lift:** Indica a força da associação entre as variáveis.
+            """)
+        else:
+            st.warning("Por favor, selecione exatamente dois atributos para a análise Apriori.")
+
+
 
 # ################## PÁGINA DA Distribuição PCA dos Dados ##################
     st.write("## Distribuição PCA dos Dados - Hipótese 1 - A renda dos indivíduos está diretamente relacionada a sua educação e seu gênero")
