@@ -14,7 +14,8 @@ st.set_page_config(layout="wide")
 df = pd.read_csv("data_processada_final.csv", sep=",", decimal=",", header=0)
 
 # Criando a barra lateral
-menu = st.sidebar.selectbox("Escolha uma opção", ["Dataset", "Heatmap", "Comparação de Países", "Comparação de Gênero", "Comparação de Investimentos", "Distribuição PCA dos Dados", "Comparação de Horas"])
+# menu = st.sidebar.selectbox("Escolha uma opção", ["Dataset", "Heatmap", "Comparação de Países", "Comparação de Gênero", "Comparação de Investimentos", "Distribuição PCA dos Dados", "Comparação de Horas"])
+menu = st.sidebar.selectbox("Escolha uma opção", ["Dataset", "Hipotese 1", "Hipotese 2", "Hipotese 3", "Hipotese 4", "Hipotese 5"])
 
 # ################## PÁGINA DO DATASET ##################
 if menu == "Dataset":
@@ -23,7 +24,7 @@ if menu == "Dataset":
 
 
 # ################## PÁGINA DO HEATMAP ##################
-elif menu == "Heatmap":
+elif menu == "Hipotese 1":
     st.write("## Heatmap dos Atributos - Hipótese 1 - A renda dos indivíduos está diretamente relacionada a sua educação e seu gênero")
 
     # Criando a tabela em Markdown
@@ -79,10 +80,86 @@ elif menu == "Heatmap":
         """
     desc_placeholder_heatmap.markdown(heatmap_desc)
 
+# ################## PÁGINA DA Distribuição PCA dos Dados ##################
+    st.write("## Distribuição PCA dos Dados - Hipótese 1 - A renda dos indivíduos está diretamente relacionada a sua educação e seu gênero")
+
+    chart_placeholder_pca = st.empty()
+    desc_placeholder_pca = st.empty()
+
+    # Obtém a lista de colunas numéricas
+    numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
+    
+    # Define os índices padrão para "income" e "sex_Male"
+    default_color_index = numeric_columns.index("income") if "income" in numeric_columns else 0
+    default_shape_index = numeric_columns.index("sex_Male") if "sex_Male" in numeric_columns else 0
+
+    # Seleção interativa das colunas para colorir e definir o símbolo dos pontos
+    color_feature = st.selectbox("Escolha a coluna para colorir os pontos:", numeric_columns, index=default_color_index)
+    shape_feature = st.selectbox("Escolha a coluna para definir a forma dos pontos:", numeric_columns, index=default_shape_index)
+    
+    # Cria uma cópia do DataFrame para realizar o PCA
+    dataPCA = df.copy()
+    numerical_features = dataPCA.select_dtypes(include=['number'])
+    
+    # Padroniza os dados
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(numerical_features)
+    
+    # Aplica o PCA para reduzir os dados a 3 componentes principais
+    pca = PCA(n_components=3)
+    pca_result = pca.fit_transform(scaled_data)
+    
+    # Adiciona os componentes principais ao DataFrame
+    dataPCA['PC1'] = pca_result[:, 0]
+    dataPCA['PC2'] = pca_result[:, 1]
+    dataPCA['PC3'] = pca_result[:, 2]
+    
+    # Cria o gráfico 3D interativo usando Plotly Express com novas cores e bordas nos pontos
+    figPCA = px.scatter_3d(
+        dataPCA, 
+        x='PC1', y='PC2', z='PC3',
+        color=color_feature,
+        symbol=shape_feature,
+        color_continuous_scale="Viridis",  # Paleta de cores
+        title="Visualização 3D dos Componentes Principais",
+        labels={"PC1": "Componente Principal 1", "PC2": "Componente Principal 2", "PC3": "Componente Principal 3"}
+    )
+
+    # Adiciona borda aos pontos
+    figPCA.update_traces(marker=dict(size=6, line=dict(width=2, color='black')))  
+
+    # Atualiza o layout para melhor contraste
+    figPCA.update_layout(
+        width=1000, height=800,
+        scene=dict(
+            xaxis=dict(backgroundcolor="rgb(230, 230, 230)"),  # Fundo do eixo X
+            yaxis=dict(backgroundcolor="rgb(230, 230, 230)"),  # Fundo do eixo Y
+            zaxis=dict(backgroundcolor="rgb(230, 230, 230)"),  # Fundo do eixo Z
+        ),
+        coloraxis_colorbar=dict(title=color_feature)  # Ajusta legenda da cor
+    )
+
+    # Exibe o gráfico no Streamlit
+    chart_placeholder_pca.plotly_chart(figPCA, use_container_width=True)
+
+    # Adiciona a descrição
+    pca_desc = f"""
+        **Descrição do Gráfico PCA:**
+        O gráfico acima apresenta uma visualização em 3 dimensões de todos os dados presentes na dataframe.
+        Esse gráfico foi gerado com o Principal Component Analysis, onde é realizada uma redução (resumo) de todas as
+        features presentes para apenas 3, permitindo assim essa visualização.
+        Através do gráfico também podemos observar que as cores e as formas mudam conforme a variável selecionada.
+        Nesse caso, as variáveis escolhidas para essa visualização são {color_feature} para cores e {shape_feature} para formato.
+        Com base nesse gráfico, quando selecionamos para ver o contraste entre o income e o sex_Male, conseguimos ver de modo ainda melhor
+        que os pontos azuis (renda anual superior a \$50.000) possuem mais círculos (homens) do que quadrados (mulheres). 
+    """
+    desc_placeholder_pca.markdown(pca_desc)
+
+
 
 
 # ################## PÁGINA DA COMPARAÇÃO DOS IMIGRANTES ##################
-elif menu == "Comparação de Países":
+elif menu == "Hipotese 2":
     st.write("## Comparação de Países - Hipótese 2 - Imigrantes recebem menos que norte-americanos")
 
     # Initialize default values
@@ -306,235 +383,9 @@ elif menu == "Comparação de Países":
 
 
 
-# ################## PÁGINA DA COMPARAÇÃO DE GENERO ##################
-if menu == "Comparação de Gênero":
-    st.write("## Comparação de Gênero - Hipótese 4 - Mulheres recebem menos que homens mesmo se filtrarmos por horas trabalhadas e nível de escolaridade")
-
-    chart_placeholder_genero = st.empty()
-    desc_placeholder_genero = st.empty()
-
-    # Lista de classes de trabalho
-    workclassesGenero = [
-        "Qualquer área de trabalho",
-        "workclass_Local-gov", "workclass_Private", "workclass_Self-emp-inc",
-        "workclass_Self-emp-not-inc", "workclass_State-gov", "workclass_Without-pay"
-    ]
-
-    # Caixa de seleção para escolher a classe de trabalho
-    selected_workclass = st.selectbox("Selecione a classe de trabalho:", workclassesGenero)
-
-    # Caixa de seleção para escolher o valor de hours-per-week
-    hours_values = [0, 0.5, 1, "Todos"] # menos de 40h, igual a 40h, mais de 40h
-    selected_hours = st.selectbox("Selecione a carga horária (hours-per-week):", hours_values)
-
-    # Filtragem por classe de trabalho
-    if selected_workclass != "Qualquer área de trabalho":
-        df_filtered = df[df[selected_workclass] == 1]  # Filtra pela classe de trabalho selecionada
-    else:
-        df_filtered = df  # Considera todos os dados
-
-    # Filtragem por hours-per-week
-    if selected_hours != "Todos":
-        df_filtered = df_filtered[df_filtered["hours-per-week"] == selected_hours]
-
-    # Contagem total de homens e mulheres no conjunto filtrado
-    total_women = len(df_filtered[df_filtered['sex_Male'] == 0])
-    total_men = len(df_filtered[df_filtered['sex_Male'] == 1])
-
-    # Contagem de mulheres e homens com income == 1
-    women_with_income = len(df_filtered[(df_filtered['sex_Male'] == 0) & (df_filtered['income'] == 1)])
-    men_with_income = len(df_filtered[(df_filtered['sex_Male'] == 1) & (df_filtered['income'] == 1)])
-
-    # Cálculo da porcentagem
-    women_income_percentage = (women_with_income / total_women) * 100 if total_women > 0 else 0
-    men_income_percentage = (men_with_income / total_men) * 100 if total_men > 0 else 0
-
-    # Exibição dos resultados
-    st.write(f"🔹 **De um total de {total_women} mulheres, {women_income_percentage:.2f}% delas ganham mais de \$50k, trabalham na área de: {selected_workclass}, por {selected_hours} horas/semana):**")
-    st.write(f"🔹 **De um total de {total_men} homens, {men_income_percentage:.2f}% delas ganham mais de \$50k, trabalham na área de: {selected_workclass}, por {selected_hours} horas/semana):**")
-
-    procentagem_pizza_mulher = (women_income_percentage * 100) / (women_income_percentage+men_income_percentage)
-    procentagem_pizza_homem = (men_income_percentage * 100) / (women_income_percentage+men_income_percentage)
-
-
-    # Criando o gráfico de pizza
-    fig_genero, ax = plt.subplots(figsize=(2, 2))
-    labels = ["Mulheres", "Homens"]
-    sizes = [women_income_percentage, men_income_percentage]
-    colors = ["#ff9999", "#66b3ff"]  # Cores para mulheres e homens
-    explode = (0.1, 0)  # Destacar fatia das mulheres
-    ax.pie(sizes, labels=labels, autopct="%1.1f%%", colors=colors, startangle=90, explode=explode, shadow=True)
-    ax.set_title("Comparação de Probabilidade de Renda Anual Superior a $50.000")
-
-
-    chart_placeholder_genero.pyplot(fig_genero)
-
-    genero_desc = f"""
-        **Descrição do Gráfico de Renda por Gênero:**
-        O gráfico mostrado acima é um gráfico de Pizza que apresenta a proporção entre Homens e Mulheres que ganham salários anuais superiores a \$50.000 anuais.
-        Ele foi construído com base na probabilidade de Homens e Mulheres, que trabalham na mesma área de atuação ({selected_workclass}),
-        e com a mesma quantidade de Horas Semanais ({selected_hours}) ganharem mais de \$50.000 anuais.
-        Nessa representação específica, temos que das {total_women} mulheres que atuam nessa área por essas horas, apenas {women_income_percentage:.1f}% ganham acima dos \$50.000 anuais.
-        Enquanto para os Homens nessa mesma área de atuação e que trabalham pela mesma área, verificamos que existem {total_men} homens nessa categoria,
-        dos quais {men_income_percentage:.1f}% recebem acima dos \$50.000 anuais.
-        Assim, considerando a soma dessas porcentagens ({women_income_percentage:.1f} e {men_income_percentage:.1f}), é feita a construção do Gráfico de Pizza.
-        Dessa forma, as porcentagens contidas nesse gráfico indicam que:
-        A proporção dos indivíduos mulheres que recebem mais de \$50.000, trabalha na área da {selected_workclass}, por {selected_hours} semanais é de: {procentagem_pizza_mulher:.1f}%.
-        Enquanto a proporção dos homens com essas mesmas características é de: {procentagem_pizza_homem:.1f}%.
-        """
-    desc_placeholder_genero.markdown(genero_desc)
-
-
-
-# ################## PÁGINA DA COMPARAÇÃO DE INVESTIMENTOS ##################
-if menu == "Comparação de Investimentos":
-    st.write("## Comparação de Investimentos - Hipótese 5 - Indivíduos mais jovens se arriscam mais com investimentos do que indivíduos que são mais velhos")
-
-    chart_placeholder_investimento = st.empty()
-    desc_placeholder_investimentos = st.empty()
-
-    # Exibir os gráficos
-    # coluna_investimento1, coluna_investimento2 = st.columns(2)
-    # with coluna_investimento1:
-    #     st.plotly_chart(fig1, use_container_width=True)
-    # with coluna_investimento2:
-    #     st.plotly_chart(fig2, use_container_width=True)
-
-    # Normalização Z-score (média = 0, variância = 1)
-    df['investment_status_normalized'] = (df['investment_status_naoDiscretizado'] - df['investment_status_naoDiscretizado'].mean()) / df['investment_status_naoDiscretizado'].std()
-
-    # Selecionar faixa etária
-    selected_age_range = st.slider("Selecione uma faixa etária", 
-                                   min_value=int(df['age_naoDiscretizada'].min()), 
-                                   max_value=int(df['age_naoDiscretizada'].max()), 
-                                   value=(int(df['age_naoDiscretizada'].min()), int(df['age_naoDiscretizada'].max())), 
-                                   step=5)
-    selected_age_min, selected_age_max = selected_age_range
-    
-    # Caixa de entrada para o valor do investimento
-    investment_threshold = st.number_input("Digite o valor do investimento para calcular a probabilidade", 
-                                           min_value=0, value=10000, step=1000)
-    
-    df_filtered = df[(df['age_naoDiscretizada'] >= selected_age_min) & (df['age_naoDiscretizada'] <= selected_age_max)]
-    total_people = len(df_filtered)
-    people_above_threshold = len(df_filtered[df_filtered['investment_status_naoDiscretizado'] > investment_threshold])
-    
-    probability = (people_above_threshold / total_people) * 100 if total_people > 0 else 0
-    
-    st.write(f"A probabilidade de uma pessoa entre {selected_age_min} e {selected_age_max} anos ter mais de {investment_threshold} de investimento é de {probability:.2f}%")
-    
-    fig_investimento, (ax_cdf, ax_pdf) = plt.subplots(ncols=2, figsize=(12, 4))
-
-    # Gráfico CDF (Distribuição Acumulada)
-    sns.kdeplot(df_filtered['investment_status_naoDiscretizado'], cumulative=True, fill=True, ax=ax_cdf)
-    ax_cdf.axhline(y=probability / 100, color='r', linestyle='--', label=f'Probabilidade: {probability:.2f}%')
-    ax_cdf.set_title("CDF: Distribuição Acumulada")
-    ax_cdf.set_xlabel("Investment Status")
-    ax_cdf.set_ylabel("Probabilidade Acumulada")
-    ax_cdf.legend()
-
-    # Gráfico PDF (Densidade de Probabilidade)
-    sns.kdeplot(df_filtered['investment_status_naoDiscretizado'], cumulative=False, fill=True, ax=ax_pdf)
-    ax_pdf.axvline(x=investment_threshold, color='r', linestyle='--', label=f'Investimento: ${investment_threshold}')
-    ax_pdf.set_title("PDF: Densidade de Probabilidade")
-    ax_pdf.set_xlabel("Investment Status")
-    ax_pdf.set_ylabel("Densidade")
-    ax_pdf.legend()
-    
-    chart_placeholder_investimento.pyplot(fig_investimento)
-
-    investimento_desc = f"""
-        **Descrição do Gráfico de Renda:**
-        O gráfico presente apresenta a Distribuição Acumulada dos valores obtidos com investimentos pelas população que participiou do Senso Demográfico.
-        Nessa amostragem estão inclusas as pessoas cuja idade é superior a {selected_age_min} anos de idade e inferior a {selected_age_max} anos de idade.
-        Também é mostrado um valor de limite mínimo de lucro obtido com investimentos para servir como base para cálculos de probabilidade.
-        O limite selecionado é de \${investment_threshold}, ou seja, através do gráfico é demonstrado que a probabilidade de alguém entre {selected_age_min} e {selected_age_max} anos
-        possuir um lucro superior a \${investment_threshold} é de {probability:.2f}%.
-        """
-    desc_placeholder_investimentos.markdown(investimento_desc)
-
-
-
-
-
-# ################## PÁGINA DA Distribuição PCA dos Dados ##################
-if menu == "Distribuição PCA dos Dados":
-    st.write("## Distribuição PCA dos Dados - Hipótese 1 - A renda dos indivíduos está diretamente relacionada a sua educação e seu gênero")
-
-    chart_placeholder_pca = st.empty()
-    desc_placeholder_pca = st.empty()
-
-    # Obtém a lista de colunas numéricas
-    numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
-    
-    # Define os índices padrão para "income" e "sex_Male"
-    default_color_index = numeric_columns.index("income") if "income" in numeric_columns else 0
-    default_shape_index = numeric_columns.index("sex_Male") if "sex_Male" in numeric_columns else 0
-
-    # Seleção interativa das colunas para colorir e definir o símbolo dos pontos
-    color_feature = st.selectbox("Escolha a coluna para colorir os pontos:", numeric_columns, index=default_color_index)
-    shape_feature = st.selectbox("Escolha a coluna para definir a forma dos pontos:", numeric_columns, index=default_shape_index)
-    
-    # Cria uma cópia do DataFrame para realizar o PCA
-    dataPCA = df.copy()
-    numerical_features = dataPCA.select_dtypes(include=['number'])
-    
-    # Padroniza os dados
-    scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(numerical_features)
-    
-    # Aplica o PCA para reduzir os dados a 3 componentes principais
-    pca = PCA(n_components=3)
-    pca_result = pca.fit_transform(scaled_data)
-    
-    # Adiciona os componentes principais ao DataFrame
-    dataPCA['PC1'] = pca_result[:, 0]
-    dataPCA['PC2'] = pca_result[:, 1]
-    dataPCA['PC3'] = pca_result[:, 2]
-    
-    # Cria o gráfico 3D interativo usando Plotly Express com novas cores e bordas nos pontos
-    figPCA = px.scatter_3d(
-        dataPCA, 
-        x='PC1', y='PC2', z='PC3',
-        color=color_feature,
-        symbol=shape_feature,
-        color_continuous_scale="Viridis",  # Paleta de cores
-        title="Visualização 3D dos Componentes Principais",
-        labels={"PC1": "Componente Principal 1", "PC2": "Componente Principal 2", "PC3": "Componente Principal 3"}
-    )
-
-    # Adiciona borda aos pontos
-    figPCA.update_traces(marker=dict(size=6, line=dict(width=2, color='black')))  
-
-    # Atualiza o layout para melhor contraste
-    figPCA.update_layout(
-        width=1000, height=800,
-        scene=dict(
-            xaxis=dict(backgroundcolor="rgb(230, 230, 230)"),  # Fundo do eixo X
-            yaxis=dict(backgroundcolor="rgb(230, 230, 230)"),  # Fundo do eixo Y
-            zaxis=dict(backgroundcolor="rgb(230, 230, 230)"),  # Fundo do eixo Z
-        ),
-        coloraxis_colorbar=dict(title=color_feature)  # Ajusta legenda da cor
-    )
-
-    # Exibe o gráfico no Streamlit
-    chart_placeholder_pca.plotly_chart(figPCA, use_container_width=True)
-
-    # Adiciona a descrição
-    pca_desc = f"""
-        **Descrição do Gráfico PCA:**
-        O gráfico acima apresenta uma visualização em 3 dimensões de todos os dados presentes na dataframe.
-        Esse gráfico foi gerado com o Principal Component Analysis, onde é realizada uma redução (resumo) de todas as
-        features presentes para apenas 3, permitindo assim essa visualização.
-        Através do gráfico também podemos observar que as cores e as formas mudam conforme a variável selecionada.
-        Nesse caso, as variáveis escolhidas para essa visualização são {color_feature} para cores e {shape_feature} para formato.
-        Com base nesse gráfico, quando selecionamos para ver o contraste entre o income e o sex_Male, conseguimos ver de modo ainda melhor
-        que os pontos azuis (renda anual superior a \$50.000) possuem mais círculos (homens) do que quadrados (mulheres). 
-    """
-    desc_placeholder_pca.markdown(pca_desc)
 
 # ################## PÁGINA DA Distribuição DA COMPARAÇÃO DE HORAS ##################
-if menu == "Comparação de Horas":
+if menu == "Hipotese 3":
     st.write("## Comparação de Horas - Hipótese 3 - A quantidade de horas trabalhadas por semana não está relacionada à renda do indivíduo")
 
     # Use columns to display the two figures side by side at the top of the page
@@ -630,3 +481,152 @@ if menu == "Comparação de Horas":
         """
     desc_placeholder_horas.markdown(horas_desc)
 
+
+
+
+# ################## PÁGINA DA COMPARAÇÃO DE GENERO ##################
+if menu == "Hipotese 4":
+    st.write("## Comparação de Gênero - Hipótese 4 - Mulheres recebem menos que homens mesmo se filtrarmos por horas trabalhadas e nível de escolaridade")
+
+    chart_placeholder_genero = st.empty()
+    desc_placeholder_genero = st.empty()
+
+    # Lista de classes de trabalho
+    workclassesGenero = [
+        "Qualquer área de trabalho",
+        "workclass_Local-gov", "workclass_Private", "workclass_Self-emp-inc",
+        "workclass_Self-emp-not-inc", "workclass_State-gov", "workclass_Without-pay"
+    ]
+
+    # Caixa de seleção para escolher a classe de trabalho
+    selected_workclass = st.selectbox("Selecione a classe de trabalho:", workclassesGenero)
+
+    # Caixa de seleção para escolher o valor de hours-per-week
+    hours_values = [0, 0.5, 1, "Todos"] # menos de 40h, igual a 40h, mais de 40h
+    selected_hours = st.selectbox("Selecione a carga horária (hours-per-week):", hours_values)
+
+    # Filtragem por classe de trabalho
+    if selected_workclass != "Qualquer área de trabalho":
+        df_filtered = df[df[selected_workclass] == 1]  # Filtra pela classe de trabalho selecionada
+    else:
+        df_filtered = df  # Considera todos os dados
+
+    # Filtragem por hours-per-week
+    if selected_hours != "Todos":
+        df_filtered = df_filtered[df_filtered["hours-per-week"] == selected_hours]
+
+    # Contagem total de homens e mulheres no conjunto filtrado
+    total_women = len(df_filtered[df_filtered['sex_Male'] == 0])
+    total_men = len(df_filtered[df_filtered['sex_Male'] == 1])
+
+    # Contagem de mulheres e homens com income == 1
+    women_with_income = len(df_filtered[(df_filtered['sex_Male'] == 0) & (df_filtered['income'] == 1)])
+    men_with_income = len(df_filtered[(df_filtered['sex_Male'] == 1) & (df_filtered['income'] == 1)])
+
+    # Cálculo da porcentagem
+    women_income_percentage = (women_with_income / total_women) * 100 if total_women > 0 else 0
+    men_income_percentage = (men_with_income / total_men) * 100 if total_men > 0 else 0
+
+    # Exibição dos resultados
+    st.write(f"🔹 **De um total de {total_women} mulheres, {women_income_percentage:.2f}% delas ganham mais de \$50k, trabalham na área de: {selected_workclass}, por {selected_hours} horas/semana):**")
+    st.write(f"🔹 **De um total de {total_men} homens, {men_income_percentage:.2f}% delas ganham mais de \$50k, trabalham na área de: {selected_workclass}, por {selected_hours} horas/semana):**")
+
+    procentagem_pizza_mulher = (women_income_percentage * 100) / (women_income_percentage+men_income_percentage)
+    procentagem_pizza_homem = (men_income_percentage * 100) / (women_income_percentage+men_income_percentage)
+
+
+    # Criando o gráfico de pizza
+    fig_genero, ax = plt.subplots(figsize=(2, 2))
+    labels = ["Mulheres", "Homens"]
+    sizes = [women_income_percentage, men_income_percentage]
+    colors = ["#ff9999", "#66b3ff"]  # Cores para mulheres e homens
+    explode = (0.1, 0)  # Destacar fatia das mulheres
+    ax.pie(sizes, labels=labels, autopct="%1.1f%%", colors=colors, startangle=90, explode=explode, shadow=True)
+    ax.set_title("Comparação de Probabilidade de Renda Anual Superior a $50.000")
+
+
+    chart_placeholder_genero.pyplot(fig_genero)
+
+    genero_desc = f"""
+        **Descrição do Gráfico de Renda por Gênero:**
+        O gráfico mostrado acima é um gráfico de Pizza que apresenta a proporção entre Homens e Mulheres que ganham salários anuais superiores a \$50.000 anuais.
+        Ele foi construído com base na probabilidade de Homens e Mulheres, que trabalham na mesma área de atuação ({selected_workclass}),
+        e com a mesma quantidade de Horas Semanais ({selected_hours}) ganharem mais de \$50.000 anuais.
+        Nessa representação específica, temos que das {total_women} mulheres que atuam nessa área por essas horas, apenas {women_income_percentage:.1f}% ganham acima dos \$50.000 anuais.
+        Enquanto para os Homens nessa mesma área de atuação e que trabalham pela mesma área, verificamos que existem {total_men} homens nessa categoria,
+        dos quais {men_income_percentage:.1f}% recebem acima dos \$50.000 anuais.
+        Assim, considerando a soma dessas porcentagens ({women_income_percentage:.1f} e {men_income_percentage:.1f}), é feita a construção do Gráfico de Pizza.
+        Dessa forma, as porcentagens contidas nesse gráfico indicam que:
+        A proporção dos indivíduos mulheres que recebem mais de \$50.000, trabalha na área da {selected_workclass}, por {selected_hours} semanais é de: {procentagem_pizza_mulher:.1f}%.
+        Enquanto a proporção dos homens com essas mesmas características é de: {procentagem_pizza_homem:.1f}%.
+        """
+    desc_placeholder_genero.markdown(genero_desc)
+
+
+
+# ################## PÁGINA DA COMPARAÇÃO DE INVESTIMENTOS ##################
+if menu == "Hipotese 5":
+    st.write("## Comparação de Investimentos - Hipótese 5 - Indivíduos mais jovens se arriscam mais com investimentos do que indivíduos que são mais velhos")
+
+    chart_placeholder_investimento = st.empty()
+    desc_placeholder_investimentos = st.empty()
+
+    # Exibir os gráficos
+    # coluna_investimento1, coluna_investimento2 = st.columns(2)
+    # with coluna_investimento1:
+    #     st.plotly_chart(fig1, use_container_width=True)
+    # with coluna_investimento2:
+    #     st.plotly_chart(fig2, use_container_width=True)
+
+    # Normalização Z-score (média = 0, variância = 1)
+    df['investment_status_normalized'] = (df['investment_status_naoDiscretizado'] - df['investment_status_naoDiscretizado'].mean()) / df['investment_status_naoDiscretizado'].std()
+
+    # Selecionar faixa etária
+    selected_age_range = st.slider("Selecione uma faixa etária", 
+                                   min_value=int(df['age_naoDiscretizada'].min()), 
+                                   max_value=int(df['age_naoDiscretizada'].max()), 
+                                   value=(int(df['age_naoDiscretizada'].min()), int(df['age_naoDiscretizada'].max())), 
+                                   step=5)
+    selected_age_min, selected_age_max = selected_age_range
+    
+    # Caixa de entrada para o valor do investimento
+    investment_threshold = st.number_input("Digite o valor do investimento para calcular a probabilidade", 
+                                           min_value=0, value=10000, step=1000)
+    
+    df_filtered = df[(df['age_naoDiscretizada'] >= selected_age_min) & (df['age_naoDiscretizada'] <= selected_age_max)]
+    total_people = len(df_filtered)
+    people_above_threshold = len(df_filtered[df_filtered['investment_status_naoDiscretizado'] > investment_threshold])
+    
+    probability = (people_above_threshold / total_people) * 100 if total_people > 0 else 0
+    
+    st.write(f"A probabilidade de uma pessoa entre {selected_age_min} e {selected_age_max} anos ter mais de {investment_threshold} de investimento é de {probability:.2f}%")
+    
+    fig_investimento, (ax_cdf, ax_pdf) = plt.subplots(ncols=2, figsize=(12, 4))
+
+    # Gráfico CDF (Distribuição Acumulada)
+    sns.kdeplot(df_filtered['investment_status_naoDiscretizado'], cumulative=True, fill=True, ax=ax_cdf)
+    ax_cdf.axhline(y=probability / 100, color='r', linestyle='--', label=f'Probabilidade: {probability:.2f}%')
+    ax_cdf.set_title("CDF: Distribuição Acumulada")
+    ax_cdf.set_xlabel("Investment Status")
+    ax_cdf.set_ylabel("Probabilidade Acumulada")
+    ax_cdf.legend()
+
+    # Gráfico PDF (Densidade de Probabilidade)
+    sns.kdeplot(df_filtered['investment_status_naoDiscretizado'], cumulative=False, fill=True, ax=ax_pdf)
+    ax_pdf.axvline(x=investment_threshold, color='r', linestyle='--', label=f'Investimento: ${investment_threshold}')
+    ax_pdf.set_title("PDF: Densidade de Probabilidade")
+    ax_pdf.set_xlabel("Investment Status")
+    ax_pdf.set_ylabel("Densidade")
+    ax_pdf.legend()
+    
+    chart_placeholder_investimento.pyplot(fig_investimento)
+
+    investimento_desc = f"""
+        **Descrição do Gráfico de Renda:**
+        O gráfico presente apresenta a Distribuição Acumulada dos valores obtidos com investimentos pelas população que participiou do Senso Demográfico.
+        Nessa amostragem estão inclusas as pessoas cuja idade é superior a {selected_age_min} anos de idade e inferior a {selected_age_max} anos de idade.
+        Também é mostrado um valor de limite mínimo de lucro obtido com investimentos para servir como base para cálculos de probabilidade.
+        O limite selecionado é de \${investment_threshold}, ou seja, através do gráfico é demonstrado que a probabilidade de alguém entre {selected_age_min} e {selected_age_max} anos
+        possuir um lucro superior a \${investment_threshold} é de {probability:.2f}%.
+        """
+    desc_placeholder_investimentos.markdown(investimento_desc)
