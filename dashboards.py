@@ -714,7 +714,7 @@ if menu == "Hipotese 5":
         Também é mostrado um valor de limite mínimo de lucro obtido com investimentos para servir como base para cálculos de probabilidade.
         O limite selecionado é de \${max_value_input}, ou seja, através do gráfico é demonstrado que a **probabilidade de alguém entre {selected_age_min} e {selected_age_max} anos
         possuir um lucro superior a \${max_value_input} é de {probability_max:.2f}%**.
-        Nesse conjunto de gráficos também possui a opção de incluir ou não as pessoas que não realizam investimentos, onde esta oção atualmente está marcada como "{exclude_zero_investment}".
+        Nesse conjunto de gráficos também possui a opção de incluir ou não as pessoas que não realizam investimentos, onde esta oção atualmente está marcada como: "{exclude_zero_investment}".
         """
 
     desc_placeholder_investimentos.markdown(investimento_desc)
