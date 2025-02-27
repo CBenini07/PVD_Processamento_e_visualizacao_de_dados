@@ -45,7 +45,10 @@ menu = st.sidebar.selectbox("Escolha uma opção", ["Dataset", "Hipotese 1", "Hi
 
 # ################## PÁGINA DO DATASET ##################
 if menu == "Dataset":
+    st.write("# Dados do Censo norte-americano de 1994")
     st.write("## Dataset Processado")
+    st.write("48 atrbitos e 41.033 linhas")
+    st.write("Informações referentes ao contexto e modo de vida das pessoas entrevistadas. Inclui dados como nível de escolaridade, gênero, nacionalidade, raça, renda, etc")
     st.dataframe(df)
 
 
@@ -112,7 +115,7 @@ elif menu == "Hipotese 1":
         selected_apriori_features = st.multiselect(
             "Selecione dois atributos para a Tabela Apriori:",
             df.columns.tolist(),
-            default=['income', 'sex_Male']
+            default=['income', 'native-country']
         )
 
         if len(selected_apriori_features) == 2:
@@ -631,23 +634,15 @@ if menu == "Hipotese 4":
 
 
 
-# ################## PÁGINA DA COMPARAÇÃO DE INVESTIMENTOS ##################
 if menu == "Hipotese 5":
     st.write("## Comparação de Investimentos - Hipótese 5 - Indivíduos mais jovens se arriscam mais com investimentos do que indivíduos que são mais velhos")
-
+    
     chart_placeholder_investimento = st.empty()
     desc_placeholder_investimentos = st.empty()
-
-    # Exibir os gráficos
-    # coluna_investimento1, coluna_investimento2 = st.columns(2)
-    # with coluna_investimento1:
-    #     st.plotly_chart(fig1, use_container_width=True)
-    # with coluna_investimento2:
-    #     st.plotly_chart(fig2, use_container_width=True)
-
+    
     # Normalização Z-score (média = 0, variância = 1)
     df['investment_status_normalized'] = (df['investment_status_naoDiscretizado'] - df['investment_status_naoDiscretizado'].mean()) / df['investment_status_naoDiscretizado'].std()
-
+    
     # Selecionar faixa etária
     selected_age_range = st.slider("Selecione uma faixa etária", 
                                    min_value=int(df['age_naoDiscretizada'].min()), 
@@ -656,44 +651,120 @@ if menu == "Hipotese 5":
                                    step=5)
     selected_age_min, selected_age_max = selected_age_range
     
-    # Caixa de entrada para o valor do investimento
-    investment_threshold = st.number_input("Digite o valor do investimento para calcular a probabilidade", 
-                                           min_value=0, value=10000, step=1000)
+    # Caixa de entrada para o valor máximo (max_values)
+    max_value_input = st.number_input("Digite o valor máximo para analisar a probabilidade de investimento superior", 
+                                      min_value=0, value=15000, step=1000)
+
+    exclude_zero_investment = st.checkbox("Desconsiderar pessoas com investimento 0", value=False)
+
     
     df_filtered = df[(df['age_naoDiscretizada'] >= selected_age_min) & (df['age_naoDiscretizada'] <= selected_age_max)]
+
+    if exclude_zero_investment:
+        df_filtered = df_filtered[df_filtered['investment_status_naoDiscretizado'] != 0]
+
     total_people = len(df_filtered)
-    people_above_threshold = len(df_filtered[df_filtered['investment_status_naoDiscretizado'] > investment_threshold])
     
-    probability = (people_above_threshold / total_people) * 100 if total_people > 0 else 0
     
-    st.write(f"A probabilidade de uma pessoa entre {selected_age_min} e {selected_age_max} anos ter mais de {investment_threshold} de investimento é de {probability:.2f}%")
+    # Probabilidade com base no max_value_input
+    people_above_max = len(df_filtered[df_filtered['investment_status_naoDiscretizado'] > max_value_input])
+    probability_max = (people_above_max / total_people) * 100 if total_people > 0 else 0
     
-    fig_investimento, (ax_cdf, ax_pdf) = plt.subplots(ncols=2, figsize=(12, 4))
-
-    # Gráfico CDF (Distribuição Acumulada)
-    sns.kdeplot(df_filtered['investment_status_naoDiscretizado'], cumulative=True, fill=True, ax=ax_cdf)
-    ax_cdf.axhline(y=probability / 100, color='r', linestyle='--', label=f'Probabilidade: {probability:.2f}%')
-    ax_cdf.set_title("CDF: Distribuição Acumulada")
-    ax_cdf.set_xlabel("Investment Status")
-    ax_cdf.set_ylabel("Probabilidade Acumulada")
-    ax_cdf.legend()
-
-    # Gráfico PDF (Densidade de Probabilidade)
-    sns.kdeplot(df_filtered['investment_status_naoDiscretizado'], cumulative=False, fill=True, ax=ax_pdf)
-    ax_pdf.axvline(x=investment_threshold, color='r', linestyle='--', label=f'Investimento: ${investment_threshold}')
-    ax_pdf.set_title("PDF: Densidade de Probabilidade")
-    ax_pdf.set_xlabel("Investment Status")
-    ax_pdf.set_ylabel("Densidade")
-    ax_pdf.legend()
+    st.write(f"A probabilidade de uma pessoa entre {selected_age_min} e {selected_age_max} anos ter um investimento superior a {max_value_input} é de {probability_max:.2f}%")
     
-    chart_placeholder_investimento.pyplot(fig_investimento)
+    # Criação dos gráficos: linhas para idade (PDF e CDF) e investimento (PDF e CDF)
+    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 8))
+    
+    # Gráficos para Idade
+    sns.kdeplot(df_filtered['age_naoDiscretizada'], cumulative=False, fill=True, ax=axes[0, 0])
+    axes[0, 0].set_title("PDF - Idade")
+    axes[0, 0].set_xlabel("Idade")
+    axes[0, 0].set_ylabel("Densidade")
+    
+    sns.kdeplot(df_filtered['age_naoDiscretizada'], cumulative=True, fill=True, ax=axes[0, 1])
+    axes[0, 1].set_title("CDF - Idade")
+    axes[0, 1].set_xlabel("Idade")
+    axes[0, 1].set_ylabel("Probabilidade Acumulada")
+    
+    # Gráficos para Investimento
+    sns.kdeplot(df_filtered['investment_status_naoDiscretizado'], cumulative=False, fill=True, ax=axes[1, 0])
+    axes[1, 0].set_title("PDF - Investimento")
+    axes[1, 0].set_xlabel("Investimento")
+    axes[1, 0].set_ylabel("Densidade")
+    # Linha vermelha indicando o valor máximo e sua probabilidade (PDF)
+    axes[1, 0].axvline(x=max_value_input, color='r', linestyle='--', label=f'Valor: ${max_value_input} - Prob: {probability_max:.2f}%')
+    axes[1, 0].legend()
+    
+    sns.kdeplot(df_filtered['investment_status_naoDiscretizado'], cumulative=True, fill=True, ax=axes[1, 1])
+    axes[1, 1].set_title("CDF - Investimento")
+    axes[1, 1].set_xlabel("Investimento")
+    axes[1, 1].set_ylabel("Probabilidade Acumulada")
+    # Linha vermelha indicando a probabilidade (CDF)
+    axes[1, 1].axhline(y=probability_max/100, color='r', linestyle='--', label=f'Valor: ${max_value_input} - Prob: {probability_max:.2f}%')
+    axes[1, 1].legend()
+    
+    plt.tight_layout()
+    chart_placeholder_investimento.pyplot(fig)
+    
 
     investimento_desc = f"""
         **Descrição do Gráfico de Renda:**
-        O gráfico presente apresenta a Distribuição Acumulada dos valores obtidos com investimentos pelas população que participiou do Senso Demográfico.
+        Os gráficos presentes acima apresentam as Distribuições de Probabilidade Acumulada e Distribuídas dos valores das idades e dos rendimentos obtidos com investimentos pela população que participiou do Senso Demográfico.
         Nessa amostragem estão inclusas as pessoas cuja idade é superior a {selected_age_min} anos de idade e inferior a {selected_age_max} anos de idade.
         Também é mostrado um valor de limite mínimo de lucro obtido com investimentos para servir como base para cálculos de probabilidade.
-        O limite selecionado é de \${investment_threshold}, ou seja, através do gráfico é demonstrado que a probabilidade de alguém entre {selected_age_min} e {selected_age_max} anos
-        possuir um lucro superior a \${investment_threshold} é de {probability:.2f}%.
+        O limite selecionado é de \${max_value_input}, ou seja, através do gráfico é demonstrado que a **probabilidade de alguém entre {selected_age_min} e {selected_age_max} anos
+        possuir um lucro superior a \${max_value_input} é de {probability_max:.2f}%**.
+        Nesse conjunto de gráficos também possui a opção de incluir ou não as pessoas que não realizam investimentos, onde esta oção atualmente está marcada como "{exclude_zero_investment}".
         """
+
     desc_placeholder_investimentos.markdown(investimento_desc)
+    
+# Cálculos adicionais e gráficos para as médias (Idade e Investimento)
+def mean_calcs(df):
+    mean_age = df['age_naoDiscretizada'].mean()
+    mean_investment = df['investment_status_naoDiscretizado'].mean()
+    percent_below_mean_age = (df['age_naoDiscretizada'] < mean_age).mean() * 100
+    percent_below_mean_investment = (df['investment_status_naoDiscretizado'] < mean_investment).mean() * 100
+    return mean_age, mean_investment, percent_below_mean_age, percent_below_mean_investment
+
+mean_age, mean_investment, percent_below_mean_age, percent_below_mean_investment = mean_calcs(df)
+
+# Gráficos para Idade
+plt.figure(figsize=(12, 5))
+plt.subplot(1, 2, 1)
+sns.kdeplot(df['age_naoDiscretizada'], bw_adjust=0.5, fill=True)
+plt.axvline(mean_age, color='red', linestyle='--', label=f'Média: {mean_age:.2f}\\n{percent_below_mean_age:.1f}% abaixo')
+plt.legend()
+plt.title('PDF - Idade')
+plt.xlabel('Idade')
+plt.ylabel('Densidade')
+
+plt.subplot(1, 2, 2)
+sns.kdeplot(df['age_naoDiscretizada'], bw_adjust=0.5, cumulative=True, fill=True)
+plt.axvline(mean_age, color='red', linestyle='--', label=f'Média: {mean_age:.2f}\\n{percent_below_mean_age:.1f}% abaixo')
+plt.legend()
+plt.title('CDF - Idade')
+plt.xlabel('Idade')
+plt.ylabel('Probabilidade Acumulada')
+
+plt.show()
+
+# Gráficos para Investimento
+plt.figure(figsize=(12, 5))
+plt.subplot(1, 2, 1)
+sns.kdeplot(df['investment_status_naoDiscretizado'], bw_adjust=0.5, fill=True)
+plt.axvline(mean_investment, color='red', linestyle='--', label=f'Média: {mean_investment:.2f}\\n{percent_below_mean_investment:.1f}% abaixo')
+plt.legend()
+plt.title('PDF - Valor Investido')
+plt.xlabel('Valor Investido')
+plt.ylabel('Densidade')
+
+plt.subplot(1, 2, 2)
+sns.kdeplot(df['investment_status_naoDiscretizado'], bw_adjust=0.5, cumulative=True, fill=True)
+plt.axvline(mean_investment, color='red', linestyle='--', label=f'Média: {mean_investment:.2f}\\n{percent_below_mean_investment:.1f}% abaixo')
+plt.legend()
+plt.title('CDF - Valor Investido')
+plt.xlabel('Valor Investido')
+plt.ylabel('Probabilidade Acumulada')
+
+plt.show()
