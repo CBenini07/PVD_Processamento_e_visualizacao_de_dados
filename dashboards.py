@@ -103,10 +103,12 @@ elif menu == "Hipotese 1":
             É apresentado acima uma tabela de regras de associação Apriori comparando as variáveis **income**, 
             que é uma variável booleana indicando se uma uma pessoa recebe um valor acima de \$50.000 anuais como antecedente,
             e a variável **sex_Male**, que indica se a pessoa é do gênero Masculino ou Feminino.
-            Como principais resultados coletados nessa tabela, visualiza-se o suporte, que nos mostra que a combinação entre income e sex_Male
-            aparece em 21% do dataset, 
-            e também temos que o confidence é de 0.84, ou seja, que quando uma pessoa tem o
+            Como principais resultados coletados nessa tabela, visualiza-se o **Suporte**, que nos mostra que a combinação entre income == 1 e sex_Male == 1
+            aparece em 21% do elementos do dataset. 
+            Também temos o **Confidence**, que possui o valor de 0.84, ou seja, que quando uma pessoa tem o
             income maior dos \$50.000 anuais, a chance dessa pessoa ser homem é de 84%.
+            E destaca-se também o **Lift**, com valor de 1.26, ou seja, temos uma associação positiva em que sex_Male == 1 está 26%
+            mais propenço de ocorrer quando o income é de mais de \$50.000 anuais.
         """)
 
 
